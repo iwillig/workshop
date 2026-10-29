@@ -1,3 +1,4 @@
+brew "sqlite"
 brew "python"
 brew "pipenv"
 brew "pandoc"
