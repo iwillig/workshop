@@ -6,7 +6,10 @@ import os
 import asana
 import click
 from asana.rest import ApiException
+from dotenv import load_dotenv
 from urllib3.exceptions import HTTPError
+
+from research_context.notion import notion_commands
 
 
 def tasks_api():
@@ -21,6 +24,7 @@ def tasks_api():
 @click.group()
 def cli():
     """Research and context commands."""
+    load_dotenv(dotenv_path=".env.local", override=False)
 
 
 @cli.group(name="asana")
@@ -59,6 +63,9 @@ def get_task(task_gid):
         raise click.ClickException(f"Asana request failed (HTTP {exc.status}).") from exc
     except HTTPError as exc:
         raise click.ClickException("Could not connect to Asana.") from exc
+
+
+cli.add_command(notion_commands)
 
 
 if __name__ == "__main__":

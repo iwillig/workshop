@@ -18,6 +18,9 @@ python-dotenv = "*"
 sphinx = "*"
 deepeval = "*"
 markdown-it-py = "*"
+notion-client = "*"
+opentelemetry-api = "*"
+opentelemetry-sdk = "*"
 
 [dev-packages]
 pytest = "*"

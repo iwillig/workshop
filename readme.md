@@ -37,7 +37,7 @@ The workshop aims to include a Hermes-like memory and learning system. Its goal 
 
 ## Components
 
-Research and context is the first component. It provides read-only Asana task commands; see [its documentation](research_context/readme.md). The other components below are ideas, not implemented features.
+Research and context is the first component. It provides read-only Asana task and Notion page commands; see [its documentation](research_context/readme.md). The other components below are ideas, not implemented features.
 
 - Prompt builder
   - Review different models output
