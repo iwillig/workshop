@@ -79,6 +79,11 @@ Install development dependencies with `pipenv sync --dev` and run tests with
 installed as `hegeltest` and imported as `hegel`. See
 `tests/test_github_properties.py` for an example.
 
+Run the same lint and formatting checks used in GitHub Actions with
+`pipenv run ruff check . --config pyproject.toml` and
+`pipenv run ruff format --check . --config pyproject.toml`. Use
+`pipenv run ruff format . --config pyproject.toml` to format the code.
+
 ## Browser screenshots
 
 Capture a page's visible viewport with headless Chrome:

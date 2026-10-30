@@ -15,7 +15,9 @@ class InteractiveAgentConfig(AgentConfig):
 
 
 class InteractiveAgent(DefaultAgent):
-    def __init__(self, model, env, *, config_class: type = InteractiveAgentConfig, **kwargs):
+    def __init__(
+        self, model, env, *, config_class: type = InteractiveAgentConfig, **kwargs
+    ):
         super().__init__(model, env, config_class=config_class, **kwargs)
 
     def query(self) -> dict:

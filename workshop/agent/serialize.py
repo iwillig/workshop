@@ -12,7 +12,11 @@ def recursive_merge(*dictionaries: dict | None) -> dict:
         if dictionary is None:
             continue
         for key, value in dictionary.items():
-            if key in result and isinstance(result[key], dict) and isinstance(value, dict):
+            if (
+                key in result
+                and isinstance(result[key], dict)
+                and isinstance(value, dict)
+            ):
                 result[key] = recursive_merge(result[key], value)
             else:
                 result[key] = value

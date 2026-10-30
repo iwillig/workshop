@@ -29,6 +29,7 @@ pyyaml = "*"
 [dev-packages]
 pytest = "*"
 hegeltest = "*"
+ruff = "==0.16.10"
 
 [requires]
 python_version = "3.15"

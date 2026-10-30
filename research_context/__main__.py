@@ -43,7 +43,9 @@ def list_tasks(project_gid):
         )
         click.echo(json.dumps(list(tasks), indent=2))
     except ApiException as exc:
-        raise click.ClickException(f"Asana request failed (HTTP {exc.status}).") from exc
+        raise click.ClickException(
+            f"Asana request failed (HTTP {exc.status})."
+        ) from exc
     except HTTPError as exc:
         raise click.ClickException("Could not connect to Asana.") from exc
 
@@ -55,13 +57,17 @@ def get_task(task_gid):
     try:
         result = tasks_api().get_task(
             task_gid,
-            {"opt_fields": "gid,name,notes,completed,due_on,assignee.name,permalink_url"},
+            {
+                "opt_fields": "gid,name,notes,completed,due_on,assignee.name,permalink_url"
+            },
             full_payload=True,
             _request_timeout=30,
         )
         click.echo(json.dumps(result["data"], indent=2))
     except ApiException as exc:
-        raise click.ClickException(f"Asana request failed (HTTP {exc.status}).") from exc
+        raise click.ClickException(
+            f"Asana request failed (HTTP {exc.status})."
+        ) from exc
     except HTTPError as exc:
         raise click.ClickException("Could not connect to Asana.") from exc
 

@@ -25,7 +25,9 @@ def test_screenshot(monkeypatch):
         return Driver()
 
     monkeypatch.setattr(browser.webdriver, "Chrome", create_driver)
-    result = CliRunner().invoke(cli, ["browser", "screenshot", "https://example.com", "capture.png"])
+    result = CliRunner().invoke(
+        cli, ["browser", "screenshot", "https://example.com", "capture.png"]
+    )
     assert result.exit_code == 0, result.output
     assert calls == [("get", "https://example.com"), ("save", "capture.png"), ("quit",)]
 
@@ -41,7 +43,9 @@ def test_screenshot_closes_browser_on_failure(monkeypatch):
             calls.append("quit")
 
     monkeypatch.setattr(browser.webdriver, "Chrome", lambda **kwargs: Driver())
-    result = CliRunner().invoke(cli, ["browser", "screenshot", "https://example.com", "capture.png"])
+    result = CliRunner().invoke(
+        cli, ["browser", "screenshot", "https://example.com", "capture.png"]
+    )
     assert result.exit_code != 0
     assert "navigation failed" in result.output
     assert calls == ["quit"]
@@ -59,6 +63,8 @@ def test_screenshot_reports_save_failure(monkeypatch):
             pass
 
     monkeypatch.setattr(browser.webdriver, "Chrome", lambda **kwargs: Driver())
-    result = CliRunner().invoke(cli, ["browser", "screenshot", "https://example.com", "capture.png"])
+    result = CliRunner().invoke(
+        cli, ["browser", "screenshot", "https://example.com", "capture.png"]
+    )
     assert result.exit_code != 0
     assert "Could not save screenshot" in result.output

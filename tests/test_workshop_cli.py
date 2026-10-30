@@ -8,7 +8,11 @@ from workshop.cli import cli
 
 def test_help_hierarchy():
     runner = CliRunner()
-    for args, expected in [([], "research-context"), (["research-context"], "asana"), (["research-context", "asana"], "list-tasks")]:
+    for args, expected in [
+        ([], "research-context"),
+        (["research-context"], "asana"),
+        (["research-context", "asana"], "list-tasks"),
+    ]:
         result = runner.invoke(cli, [*args, "--help"])
         assert result.exit_code == 0
         assert expected in result.output

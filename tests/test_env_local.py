@@ -7,7 +7,9 @@ from workshop.cli import cli
 
 
 def test_loads_local_tokens_for_both_entry_points(tmp_path, monkeypatch):
-    (tmp_path / ".env.local").write_text("ASANA_ACCESS_TOKEN=asana-file\nNOTION_TOKEN=notion-file\n")
+    (tmp_path / ".env.local").write_text(
+        "ASANA_ACCESS_TOKEN=asana-file\nNOTION_TOKEN=notion-file\n"
+    )
     monkeypatch.chdir(tmp_path)
     monkeypatch.delenv("ASANA_ACCESS_TOKEN", raising=False)
     monkeypatch.delenv("NOTION_TOKEN", raising=False)

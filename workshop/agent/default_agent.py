@@ -13,7 +13,12 @@ from pathlib import Path
 
 from jinja2 import StrictUndefined, Template
 
-from workshop.agent.exceptions import FormatError, InterruptAgentFlow, LimitsExceeded, TimeExceeded
+from workshop.agent.exceptions import (
+    FormatError,
+    InterruptAgentFlow,
+    LimitsExceeded,
+    TimeExceeded,
+)
 from workshop.agent.prompts import DEFAULT_INSTANCE_TEMPLATE, DEFAULT_SYSTEM_TEMPLATE
 from workshop.agent.serialize import config_as_dict, recursive_merge
 
@@ -67,7 +72,9 @@ class DefaultAgent:
         )
 
     def _render_template(self, template: str) -> str:
-        return Template(template, undefined=StrictUndefined).render(**self.get_template_vars())
+        return Template(template, undefined=StrictUndefined).render(
+            **self.get_template_vars()
+        )
 
     def add_messages(self, *messages: dict) -> list[dict]:
         self.logger.debug(messages)
@@ -95,8 +102,14 @@ class DefaultAgent:
         if reset := getattr(self.model, "reset", None):
             reset()
         self.add_messages(
-            self.model.format_message(role="system", content=self._render_template(self.config.system_template)),
-            self.model.format_message(role="user", content=self._render_template(self.config.instance_template)),
+            self.model.format_message(
+                role="system",
+                content=self._render_template(self.config.system_template),
+            ),
+            self.model.format_message(
+                role="user",
+                content=self._render_template(self.config.instance_template),
+            ),
         )
         while True:
             try:
@@ -106,13 +119,20 @@ class DefaultAgent:
                 # The call was billed before parsing failed, so query() never got to charge it.
                 self.cost += e.messages[0].get("extra", {}).get("cost", 0.0)
                 self.n_consecutive_format_errors += 1
-                if 0 < self.config.max_consecutive_format_errors <= self.n_consecutive_format_errors:
+                if (
+                    0
+                    < self.config.max_consecutive_format_errors
+                    <= self.n_consecutive_format_errors
+                ):
                     self.add_messages(
                         *e.messages,
                         {
                             "role": "exit",
                             "content": "RepeatedFormatError",
-                            "extra": {"exit_status": "RepeatedFormatError", "submission": ""},
+                            "extra": {
+                                "exit_status": "RepeatedFormatError",
+                                "submission": "",
+                            },
                         },
                     )
                 else:
@@ -134,13 +154,28 @@ class DefaultAgent:
 
     def query(self) -> dict:
         """Query the model and return the model message. Override to add hooks."""
-        if 0 < self.config.step_limit <= self.n_calls or 0 < self.config.cost_limit <= self.cost:
+        if (
+            0 < self.config.step_limit <= self.n_calls
+            or 0 < self.config.cost_limit <= self.cost
+        ):
             raise LimitsExceeded(
-                {"role": "exit", "content": "LimitsExceeded", "extra": {"exit_status": "LimitsExceeded", "submission": ""}}
+                {
+                    "role": "exit",
+                    "content": "LimitsExceeded",
+                    "extra": {"exit_status": "LimitsExceeded", "submission": ""},
+                }
             )
-        if 0 < self.config.wall_time_limit_seconds <= int(time.time() - self._start_time):
+        if (
+            0
+            < self.config.wall_time_limit_seconds
+            <= int(time.time() - self._start_time)
+        ):
             raise TimeExceeded(
-                {"role": "exit", "content": "TimeExceeded", "extra": {"exit_status": "TimeExceeded", "submission": ""}}
+                {
+                    "role": "exit",
+                    "content": "TimeExceeded",
+                    "extra": {"exit_status": "TimeExceeded", "submission": ""},
+                }
             )
         self.n_calls += 1
         message = self.model.query(self.messages)
@@ -150,8 +185,15 @@ class DefaultAgent:
 
     def execute_actions(self, message: dict) -> list[dict]:
         """Execute actions in message, add observation messages, return them."""
-        outputs = [self.env.execute(action) for action in message.get("extra", {}).get("actions", [])]
-        return self.add_messages(*self.model.format_observation_messages(message, outputs, self.get_template_vars()))
+        outputs = [
+            self.env.execute(action)
+            for action in message.get("extra", {}).get("actions", [])
+        ]
+        return self.add_messages(
+            *self.model.format_observation_messages(
+                message, outputs, self.get_template_vars()
+            )
+        )
 
     def serialize(self, *extra_dicts) -> dict:
         """Serialize agent state to a json-compatible nested dictionary for saving."""
@@ -170,7 +212,9 @@ class DefaultAgent:
             "messages": self.messages,
             "trajectory_format": TRAJECTORY_FORMAT,
         }
-        return recursive_merge(agent_data, self.model.serialize(), self.env.serialize(), *extra_dicts)
+        return recursive_merge(
+            agent_data, self.model.serialize(), self.env.serialize(), *extra_dicts
+        )
 
     def save(self, path: Path | None, *extra_dicts) -> dict:
         """Save the trajectory to a file if a path is given. Returns the serialized data."""

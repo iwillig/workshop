@@ -22,14 +22,36 @@ def agent_commands():
     default=None,
     help="YAML config file (default: the packaged default config).",
 )
-@click.option("-m", "--model", "model_name", default=None, help="An llm model id or alias (default: llm's default model).")
+@click.option(
+    "-m",
+    "--model",
+    "model_name",
+    default=None,
+    help="An llm model id or alias (default: llm's default model).",
+)
 @click.option("-y", "--yolo", is_flag=True, help="Run commands without confirmation.")
-@click.option("-o", "--output", type=click.Path(path_type=Path), default=None, help="Save the trajectory to this file.")
+@click.option(
+    "-o",
+    "--output",
+    type=click.Path(path_type=Path),
+    default=None,
+    help="Save the trajectory to this file.",
+)
 @click.option("--cwd", default=None, help="Working directory for commands.")
-@click.option("--image", default=None, help="Run commands in this Docker image instead of locally.")
-@click.option("--step-limit", type=int, default=None, help="Maximum number of model calls.")
-@click.option("--timeout", type=int, default=None, help="Per-command timeout in seconds.")
-def run_agent(task, config_path, model_name, yolo, output, cwd, image, step_limit, timeout):
+@click.option(
+    "--image",
+    default=None,
+    help="Run commands in this Docker image instead of locally.",
+)
+@click.option(
+    "--step-limit", type=int, default=None, help="Maximum number of model calls."
+)
+@click.option(
+    "--timeout", type=int, default=None, help="Per-command timeout in seconds."
+)
+def run_agent(
+    task, config_path, model_name, yolo, output, cwd, image, step_limit, timeout
+):
     """Run the agent on a task. Flags override values from the YAML config."""
     config = load_config(config_path or DEFAULT_CONFIG_PATH)
     if model_name:

@@ -16,7 +16,9 @@ def test_list_tasks(monkeypatch):
     monkeypatch.setattr(app, "tasks_api", lambda: API())
     result = CliRunner().invoke(app.cli, ["asana", "list-tasks", "123"])
     assert result.exit_code == 0, result.output
-    assert json.loads(result.output) == [{"gid": "1", "name": "Task", "completed": False}]
+    assert json.loads(result.output) == [
+        {"gid": "1", "name": "Task", "completed": False}
+    ]
 
 
 def test_get_task(monkeypatch):

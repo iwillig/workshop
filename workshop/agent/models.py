@@ -16,14 +16,21 @@ import llm
 from jinja2 import StrictUndefined, Template
 
 from workshop.agent.exceptions import FormatError
-from workshop.agent.prompts import DEFAULT_FORMAT_ERROR_TEMPLATE, DEFAULT_OBSERVATION_TEMPLATE
+from workshop.agent.prompts import (
+    DEFAULT_FORMAT_ERROR_TEMPLATE,
+    DEFAULT_OBSERVATION_TEMPLATE,
+)
 from workshop.agent.serialize import config_as_dict
 
 DEFAULT_ACTION_REGEX = r"```mswea_bash_command\s*\n(.*?)\n```"
 
 
 def parse_regex_actions(
-    content: str, *, action_regex: str, format_error_template: str, template_kwargs: dict | None = None
+    content: str,
+    *,
+    action_regex: str,
+    format_error_template: str,
+    template_kwargs: dict | None = None,
 ) -> list[dict]:
     """Parse actions from text content using regex. Raises FormatError if not exactly one action."""
     actions = [a.strip() for a in re.findall(action_regex, content, re.DOTALL)]
@@ -32,9 +39,9 @@ def parse_regex_actions(
         raise FormatError(
             {
                 "role": "user",
-                "content": Template(format_error_template, undefined=StrictUndefined).render(
-                    actions=actions, error=error_msg, **(template_kwargs or {})
-                ),
+                "content": Template(
+                    format_error_template, undefined=StrictUndefined
+                ).render(actions=actions, error=error_msg, **(template_kwargs or {})),
                 "extra": {
                     "interrupt_type": "FormatError",
                     "n_actions": len(actions),
@@ -70,7 +77,9 @@ def format_observation_messages(
     return results
 
 
-def extract_prompt(messages: list[dict], n_previous_responses: int) -> tuple[str | None, str]:
+def extract_prompt(
+    messages: list[dict], n_previous_responses: int
+) -> tuple[str | None, str]:
     """Return (system, prompt) for the next llm call from the agent's message list.
 
     The prompt is every user message appended since the last assistant reply;
@@ -176,7 +185,9 @@ class LlmModel:
         self, message: dict, outputs: list[dict], template_vars: dict | None = None
     ) -> list[dict]:
         return format_observation_messages(
-            outputs, observation_template=self.config.observation_template, template_vars=template_vars
+            outputs,
+            observation_template=self.config.observation_template,
+            template_vars=template_vars,
         )
 
     def get_template_vars(self, **kwargs) -> dict[str, Any]:

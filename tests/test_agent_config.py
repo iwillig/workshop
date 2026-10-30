@@ -1,6 +1,11 @@
 import pytest
 
-from workshop.agent.config import DEFAULT_CONFIG_PATH, build_agent, load_config, resolve_class
+from workshop.agent.config import (
+    DEFAULT_CONFIG_PATH,
+    build_agent,
+    load_config,
+    resolve_class,
+)
 from workshop.agent.default_agent import DefaultAgent
 from workshop.agent.environments import LocalEnvironment
 from workshop.agent.interactive import InteractiveAgent
