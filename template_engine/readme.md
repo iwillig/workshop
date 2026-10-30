@@ -1,6 +1,6 @@
 # Template engine
 
-The template engine generates projects from local Cookiecutter templates. Install it as part of the workshop with `pipenv sync`, or install this project separately with `pip install -e ./template-engine` from the repository root. The workshop package also requires this project to be installed; install it before `pip install -e .` when not using Pipenv.
+The template engine generates projects from local Cookiecutter templates. Install it as part of the workshop with `pipenv sync`, or install this project separately with `pip install -e ./template_engine` from the repository root. The workshop package also requires this project to be installed; install it before `pip install -e .` when not using Pipenv.
 
 List the bundled templates and generate a Python project:
 

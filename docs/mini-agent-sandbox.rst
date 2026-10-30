@@ -9,10 +9,10 @@ model requests. The project supplies local and Docker environments, among
 others. See the `control flow <https://mini-swe-agent.com/latest/advanced/control_flow/>`_
 and `environment cookbook <https://mini-swe-agent.com/latest/advanced/cookbook/>`_.
 
-The workshop does not yet integrate mini-SWE-agent or provide an agent
-sandbox. ``testcontainers`` is already listed in the workshop's ``Pipfile``.
-The design below describes how to combine them; it is not an implemented or
-security-certified sandbox.
+The workshop has a mini-SWE-agent-inspired coding agent with local and Docker
+execution; see :doc:`agent`. It does not provide the hardened Testcontainers
+sandbox described below. ``testcontainers`` is listed in the workshop's
+``Pipfile``. This design is not an implemented or security-certified sandbox.
 
 What each component does
 ------------------------

@@ -96,7 +96,7 @@ List bundled templates and generate a Python project:
 The create command also accepts a local Cookiecutter template directory. Hooks
 are disabled, but templates may contain executable Jinja extensions and produce
 arbitrary files. Use only trusted templates and values. Remote URLs are not
-supported. See ``template-engine/readme.md`` for installation and usage.
+supported. See ``template_engine/readme.md`` for installation and usage.
 
 Browser screenshots
 -------------------

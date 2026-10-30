@@ -29,4 +29,4 @@ jobs:
       - name: Check formatting
         run: pipenv run ruff format --check . --config pyproject.toml
       - name: Run tests
-        run: pipenv run python -m pytest tests
+        run: pipenv run python -m pytest tests --cov --cov-report=term-missing

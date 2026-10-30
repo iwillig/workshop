@@ -39,5 +39,6 @@ A declaration does not mean that a feature using it is implemented.
    :caption: Contents
 
    workshop-cli
+   agent
    local-models
    mini-agent-sandbox

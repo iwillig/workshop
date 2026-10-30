@@ -11,8 +11,12 @@ dependencies = ["asana", "click", "notion-client", "httpx", "python-dotenv", "se
 [project.scripts]
 workshop = "workshop.cli:cli"
 
+[tool.coverage.run]
+source = ["workshop", "research_context", "template_engine"]
+omit = ["template_engine/build/*", "template_engine/src/template_engine/templates/*"]
+
 [tool.ruff]
-exclude = ["template-engine/build", "template-engine/src/template_engine/templates"]
+exclude = ["template_engine/build", "template_engine/src/template_engine/templates"]
 
 [tool.ruff.lint]
 select = ["E4", "E7", "E9", "F"]

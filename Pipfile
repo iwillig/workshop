@@ -23,11 +23,12 @@ opentelemetry-api = "*"
 opentelemetry-sdk = "*"
 pulumi = "*"
 selenium = "*"
-template-engine = {path = "./template-engine", editable = true}
+template-engine = {path = "./template_engine", editable = true}
 pyyaml = "*"
 
 [dev-packages]
 pytest = "*"
+pytest-cov = "*"
 hegeltest = "*"
 ruff = "==0.16.10"
 

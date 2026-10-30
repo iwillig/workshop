@@ -49,8 +49,9 @@ defined.
 
 Research and context is the first component. It provides read-only
 Asana task, Notion page, and GitHub issue and pull request commands; see [its
-documentation](research_context/readme.md). The other components below
-are ideas, not implemented features.
+documentation](research_context/readme.md). The [coding agent](docs/agent.rst)
+can run tasks with an LLM model and an interactive approval step. The ideas
+below describe additional capabilities, not implemented features.
 
 - Prompt builder
   - Review different models output
@@ -67,9 +68,14 @@ are ideas, not implemented features.
 - Eval System
 - Traces.
 
+## Coding agent
+
+See the [agent guide](docs/agent.rst) for setup, usage, and execution risks.
+Local commands run with your user permissions and are not sandboxed.
+
 ## Project templates
 
-Use the [template engine](template-engine/readme.md) to generate projects from bundled or local Cookiecutter templates.
+Use the [template engine](template_engine/readme.md) to generate projects from bundled or local Cookiecutter templates.
 
 ## Testing
 
@@ -77,7 +83,9 @@ Install development dependencies with `pipenv sync --dev` and run tests with
 `pipenv run python -m pytest tests`. Property-based tests use the beta
 [Hegel Python library](https://github.com/hegeldev/hegel/tree/main/frontends/python),
 installed as `hegeltest` and imported as `hegel`. See
-`tests/test_github_properties.py` for an example.
+`tests/test_github_properties.py` for an example. To report coverage for the
+workshop packages, run `pipenv run python -m pytest tests --cov
+--cov-report=term-missing`. GitHub Actions runs the same coverage report.
 
 Run the same lint and formatting checks used in GitHub Actions with
 `pipenv run ruff check . --config pyproject.toml` and
