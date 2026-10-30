@@ -21,9 +21,14 @@ markdown-it-py = "*"
 notion-client = "*"
 opentelemetry-api = "*"
 opentelemetry-sdk = "*"
+pulumi = "*"
+selenium = "*"
+template-engine = {path = "./template-engine", editable = true}
+pyyaml = "*"
 
 [dev-packages]
 pytest = "*"
+hegeltest = "*"
 
 [requires]
 python_version = "3.15"

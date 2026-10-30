@@ -2,8 +2,8 @@ Common AI agent workshop
 ========================
 
 The workshop is a collection of distinct components that support work with the
-Common codebase. Research and context provides read-only access to Asana tasks
-and Notion pages through the ``workshop`` command.
+Common codebase. Research and context provides read-only access to Asana tasks,
+Notion pages, and GitHub issues and pull requests through the ``workshop`` command.
 
 Dependencies
 ------------
@@ -21,6 +21,8 @@ A declaration does not mean that a feature using it is implemented.
 * `Jinja <https://jinja.palletsprojects.com/>`_ renders templates.
 * `Testcontainers <https://testcontainers-python.readthedocs.io/>`_ manages containers for tests.
 * `PyGithub <https://pygithub.readthedocs.io/>`_ accesses the GitHub API.
+* `Pulumi Python SDK <https://www.pulumi.com/docs/iac/languages-sdks/python/>`_ defines infrastructure in Python.
+* `Selenium <https://www.selenium.dev/documentation/>`_ automates browsers.
 * `python-dotenv <https://pypi.org/project/python-dotenv/>`_ reads environment variables from dotenv files.
 * `zope.component <https://pypi.org/project/zope.component/>`_ provides a component architecture.
 * `zope.interface <https://pypi.org/project/zope.interface/>`_ defines and checks interfaces.
@@ -30,9 +32,12 @@ A declaration does not mean that a feature using it is implemented.
 * `OpenTelemetry API <https://opentelemetry.io/docs/languages/python/>`_ defines interfaces for telemetry.
 * `OpenTelemetry SDK <https://opentelemetry.io/docs/languages/python/>`_ implements telemetry collection.
 * `pytest <https://docs.pytest.org/>`_ runs the test suite and is a development dependency.
+* `Hegel for Python <https://hegel.readthedocs.io/>`_ generates property-based test cases and is a development dependency.
 
 .. toctree::
    :maxdepth: 2
    :caption: Contents
 
    workshop-cli
+   local-models
+   mini-agent-sandbox

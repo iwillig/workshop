@@ -1,0 +1,33 @@
+"""Exception-based control flow for the agent, ported from mini-swe-agent."""
+
+
+class InterruptAgentFlow(Exception):
+    """Raised to interrupt the agent flow and add messages to the trajectory."""
+
+    def __init__(self, *messages: dict):
+        self.messages = messages
+        super().__init__()
+
+
+class Submitted(InterruptAgentFlow):
+    """Raised when the agent has completed its task."""
+
+
+class LimitsExceeded(InterruptAgentFlow):
+    """Raised when the agent has exceeded its cost or step limit."""
+
+
+class TimeExceeded(LimitsExceeded):
+    """Raised when the agent has exceeded its wall-clock time limit."""
+
+
+class UserInterruption(InterruptAgentFlow):
+    """Raised when the user interrupts the agent."""
+
+
+class CommandRejected(InterruptAgentFlow):
+    """Raised when the user rejects a proposed command in confirm mode."""
+
+
+class FormatError(InterruptAgentFlow):
+    """Raised when the LM's output is not in the expected format."""

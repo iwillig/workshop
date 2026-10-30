@@ -1,0 +1,19 @@
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "template-engine"
+version = "0.1.0"
+requires-python = ">=3.15"
+dependencies = ["click", "cookiecutter>=2.4"]
+
+[project.scripts]
+template-engine = "template_engine.cli:cli"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+include = ["template_engine"]
+
+[tool.setuptools.package-data]
+template_engine = ["templates/python-project/cookiecutter.json", "templates/python-project/{{cookiecutter.project_slug}}/*"]

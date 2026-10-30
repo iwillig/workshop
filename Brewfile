@@ -4,4 +4,6 @@ brew "pipenv"
 brew "pandoc"
 brew "qemu"
 brew "llama.cpp"
+brew "geckodriver"
+cask "chromedriver"
 brew "pulumi/tap/pulumi", trusted: true

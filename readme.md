@@ -18,7 +18,10 @@ requests per day.
 
 ## Anatomy of an AI factory
 
-An AI factory brings together models, context, tools, workflows, and feedback to produce useful work repeatedly. The workshop uses the same ideas at a scale suited to a small team. These are conceptual building blocks, not a claim that every capability is implemented here.
+An AI factory brings together models, context, tools, workflows, and
+feedback to produce useful work repeatedly. The workshop uses the same
+ideas at a scale suited to a small team. These are conceptual building
+blocks, not a claim that every capability is implemented here.
 
 - **Work intake:** Capture a task, its constraints, and what success looks like.
 - **Models and inference:** Run AI models and choose which model to use for a task.
@@ -29,15 +32,25 @@ An AI factory brings together models, context, tools, workflows, and feedback to
 - **Observation and evaluation:** Use logs, traces, tests, and feedback to understand behavior and assess results.
 - **Governance and operations:** Manage security, privacy, access, cost, reliability, and deployment across the system.
 
-A typical workflow moves from a task through context gathering and execution to a result and human review. Traces and evaluations provide feedback for improving that workflow.
+A typical workflow moves from a task through context gathering and
+execution to a result and human review. Traces and evaluations provide
+feedback for improving that workflow.
 
 ## Memory and learning
 
-The workshop aims to include a Hermes-like memory and learning system. Its goal is to create a feedback loop that helps the harness learn from mistakes: capture useful lessons from execution, evaluation, and human review, then make those lessons available for future work. The design and implementation of this system remain to be defined.
+The workshop aims to include a Hermes-like memory and learning
+system. Its goal is to create a feedback loop that helps the harness
+learn from mistakes: capture useful lessons from execution,
+evaluation, and human review, then make those lessons available for
+future work. The design and implementation of this system remain to be
+defined.
 
 ## Components
 
-Research and context is the first component. It provides read-only Asana task and Notion page commands; see [its documentation](research_context/readme.md). The other components below are ideas, not implemented features.
+Research and context is the first component. It provides read-only
+Asana task, Notion page, and GitHub issue and pull request commands; see [its
+documentation](research_context/readme.md). The other components below
+are ideas, not implemented features.
 
 - Prompt builder
   - Review different models output
@@ -54,10 +67,39 @@ Research and context is the first component. It provides read-only Asana task an
 - Eval System
 - Traces.
 
+## Project templates
+
+Use the [template engine](template-engine/readme.md) to generate projects from bundled or local Cookiecutter templates.
+
+## Testing
+
+Install development dependencies with `pipenv sync --dev` and run tests with
+`pipenv run python -m pytest tests`. Property-based tests use the beta
+[Hegel Python library](https://github.com/hegeldev/hegel/tree/main/frontends/python),
+installed as `hegeltest` and imported as `hegel`. See
+`tests/test_github_properties.py` for an example.
+
+## Browser screenshots
+
+Capture a page's visible viewport with headless Chrome:
+
+```shell
+workshop browser screenshot https://example.com screenshot.png
+```
+
+See the [command reference](docs/workshop-cli.rst) for browser requirements and limitations.
+
+## Infrastructure
+
+The resource-free [Pulumi Python project](infra/readme.md) is ready for infrastructure definitions.
+
 ## Documentation
 
-See [docs/readme.md](docs/readme.md) for instructions to build the Sphinx documentation, including the workshop command reference.
+See [docs/readme.md](docs/readme.md) for instructions to build the
+Sphinx documentation, including the workshop command reference.
 
 ## Install
 
-Install the Homebrew dependencies with `just install`. To install the Python dependencies and use the research and context commands, follow the [component setup](research_context/readme.md).
+Install the Homebrew dependencies with `just install`. To install the
+Python dependencies and use the research and context commands, follow
+the [component setup](research_context/readme.md).

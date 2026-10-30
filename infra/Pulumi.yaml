@@ -1,0 +1,3 @@
+name: common-workshop-infra
+runtime: python
+description: Infrastructure for the Common AI agent workshop
