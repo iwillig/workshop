@@ -37,6 +37,8 @@ The workshop aims to include a Hermes-like memory and learning system. Its goal 
 
 ## Components
 
+Research and context is the first component. It provides read-only Asana task commands; see [its documentation](research_context/readme.md). The other components below are ideas, not implemented features.
+
 - Prompt builder
   - Review different models output
 - Planning documents.
@@ -52,8 +54,10 @@ The workshop aims to include a Hermes-like memory and learning system. Its goal 
 - Eval System
 - Traces.
 
+## Documentation
+
+See [docs/readme.md](docs/readme.md) for instructions to build the Sphinx documentation, including the workshop command reference.
+
 ## Install
 
-```shell
-
-```
+Install the Homebrew dependencies with `just install`. To install the Python dependencies and use the research and context commands, follow the [component setup](research_context/readme.md).
