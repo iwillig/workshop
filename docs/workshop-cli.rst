@@ -59,6 +59,8 @@ GitHub issues and pull requests
    workshop research-context github list-prs OWNER/REPO
    workshop research-context github search-prs 'is:pr is:open draft:false review:none -author:@me'
    workshop research-context github get-pr OWNER/REPO NUMBER
+   workshop research-context github pr-files OWNER/REPO NUMBER
+   workshop research-context github pr-commits OWNER/REPO NUMBER
 
 Lists return all pages of open items by default. Pass ``--state closed`` or
 ``--state all`` to change the filter. Issue lists exclude pull requests.

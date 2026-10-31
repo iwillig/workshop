@@ -1,4 +1,4 @@
-# Common AI agent workshop
+# Workshop
 
 A collection of tools to make working with the Common codebase easier.
 

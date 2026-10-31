@@ -22,6 +22,8 @@ workshop research-context github get-issue OWNER/REPO NUMBER
 workshop research-context github list-prs OWNER/REPO
 workshop research-context github search-prs 'is:pr is:open draft:false review:none -author:@me'
 workshop research-context github get-pr OWNER/REPO NUMBER
+workshop research-context github pr-files OWNER/REPO NUMBER
+workshop research-context github pr-commits OWNER/REPO NUMBER
 ```
 
 The original `pipenv run python -m research_context asana` entry point also remains available.
@@ -43,6 +45,23 @@ The `search-prs` example finds open, non-draft pull requests with no reviews, ex
 Set `GITHUB_TOKEN` to use `@me`. Add `repo:OWNER/REPO` to restrict the search to a repository. Quote the query so the shell passes it as one argument. `search-prs` accepts GitHub's search syntax and always adds `is:pr`, even if it is omitted from the query.
 
 Search returns a JSON object with `total_count`, `incomplete_results`, and `items`. GitHub limits retrieval to the first 1,000 results. A true `incomplete_results` value means GitHub did not finish searching.
+
+### Review a pull request
+
+```shell
+# Find review requests, or your own open pull requests (requires GITHUB_TOKEN).
+workshop research-context github search-prs 'is:open review-requested:@me'
+workshop research-context github search-prs 'is:open author:@me'
+# Inspect discussion, changed files, and commits.
+workshop research-context github get-pr OWNER/REPO NUMBER
+workshop research-context github pr-files OWNER/REPO NUMBER
+workshop research-context github pr-commits OWNER/REPO NUMBER
+```
+
+The file and commit commands return GitHub's JSON objects, including available
+file patches. GitHub limits these endpoints to 3,000 files and 250 commits per
+pull request; patches may be omitted for some files. Results at these limits
+may be incomplete.
 
 GitHub list commands return open items by default; use `--state closed` or `--state all` to change that. Issue lists exclude pull requests. Detail commands include issue comments; pull request details also include review comments and reviews. Lists and comments fetch all available pages.
 

@@ -155,6 +155,24 @@ def search_prs(query):
     output(github_request(fetch))
 
 
+@github_commands.command("pr-files")
+@click.argument("repository")
+@click.argument("number", type=click.IntRange(min=1))
+def pr_files(repository, number):
+    """List changed files and available patches for a pull request as JSON."""
+    path = repository_path(repository)
+    output(github_request(lambda api: api.list_all(f"{path}/pulls/{number}/files")))
+
+
+@github_commands.command("pr-commits")
+@click.argument("repository")
+@click.argument("number", type=click.IntRange(min=1))
+def pr_commits(repository, number):
+    """List commits in a pull request as JSON."""
+    path = repository_path(repository)
+    output(github_request(lambda api: api.list_all(f"{path}/pulls/{number}/commits")))
+
+
 @github_commands.command("get-pr")
 @click.argument("repository")
 @click.argument("number", type=click.IntRange(min=1))

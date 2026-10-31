@@ -1,6 +1,7 @@
 import json
 
 import httpx
+import pytest
 from click.testing import CliRunner
 
 from research_context import github
@@ -141,6 +142,32 @@ def test_get_pr_includes_discussion_and_reviews(monkeypatch):
         "review_comments": [{"id": 2}],
         "reviews": [{"id": 3}],
     }
+
+
+@pytest.mark.parametrize(
+    "command,endpoint", [("pr-files", "files"), ("pr-commits", "commits")]
+)
+def test_pr_context_paginates(monkeypatch, command, endpoint):
+    def handler(request):
+        assert request.url.path == f"/repos/o/r/pulls/2/{endpoint}"
+        assert request.url.params["per_page"] == "100"
+        page = int(request.url.params["page"])
+        return httpx.Response(
+            200, json=[{"id": n} for n in (range(100) if page == 1 else [100])]
+        )
+
+    result = run_with_transport(monkeypatch, handler, [command, "o/r", "2"])
+    assert result.exit_code == 0, result.output
+    assert len(json.loads(result.output)) == 101
+
+
+@pytest.mark.parametrize("command", ["pr-files", "pr-commits"])
+def test_pr_context_rejects_invalid_inputs(monkeypatch, command):
+    for repository, number in [("o/../r", "2"), ("o/r", "0")]:
+        result = CliRunner().invoke(
+            cli, ["research-context", "github", command, repository, number]
+        )
+        assert result.exit_code != 0
 
 
 def test_authentication_and_http_error(monkeypatch):
