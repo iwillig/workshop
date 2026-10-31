@@ -25,6 +25,7 @@ pulumi = "*"
 selenium = "*"
 template-engine = {path = "./template_engine", editable = true}
 pyyaml = "*"
+gitpython = "*"
 
 [dev-packages]
 pytest = "*"

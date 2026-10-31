@@ -84,6 +84,22 @@ Search returns ``total_count``, ``incomplete_results``, and ``items``. GitHub
 limits retrieval to the first 1,000 search results; an ``incomplete_results``
 value of true means GitHub did not finish searching.
 
+Local Git review
+----------------
+
+Inspect a local working tree and recent commits as JSON:
+
+.. code-block:: shell
+
+   workshop research-context git status
+   workshop research-context git diff
+   workshop research-context git diff --staged
+   workshop research-context git log --limit 10
+
+Use ``--repo PATH`` to select a repository or a directory within it; the
+current directory is the default. Diff excludes untracked files. The commands
+are read-only and do not support bare repositories.
+
 Project templates
 -----------------
 

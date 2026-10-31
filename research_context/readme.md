@@ -8,6 +8,24 @@ Install the Python dependencies with `pipenv sync`, then install the workshop co
 
 GitHub commands can read public repositories without a token. Set `GITHUB_TOKEN` in the environment or `.env.local` for private repositories and authenticated rate limits. The token needs read access to issues and pull requests in the requested repository. Keep `.env.local` out of source control.
 
+## Local Git review
+
+These read-only commands inspect the current repository (or a parent repository).
+Use `--repo PATH` to select another repository. No tokens are needed.
+
+```shell
+workshop research-context git status
+workshop research-context git diff
+workshop research-context git diff --staged
+workshop research-context git log --limit 10
+```
+
+Status reports staged and working-tree change codes and untracked paths. Diff
+returns a JSON object containing a patch; untracked files are not included.
+Log returns commits reachable from HEAD. Detached HEAD has a null branch in
+status; a repository with no commits has an empty log. Bare repositories are
+not supported.
+
 ## Commands
 
 Run these commands from the repository root:

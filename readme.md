@@ -48,7 +48,7 @@ defined.
 ## Components
 
 Research and context is the first component. It provides read-only
-Asana task, Notion page, and GitHub issue and pull request commands; see [its
+Asana task, Notion page, GitHub issue and pull request, and local Git review commands; see [its
 documentation](research_context/readme.md). The [coding agent](docs/agent.rst)
 can run tasks with an LLM model and an interactive approval step. The ideas
 below describe additional capabilities, not implemented features.

@@ -9,6 +9,7 @@ from asana.rest import ApiException
 from dotenv import load_dotenv
 from urllib3.exceptions import HTTPError
 
+from research_context.git import git_commands
 from research_context.github import github_commands
 from research_context.notion import notion_commands
 
@@ -74,6 +75,7 @@ def get_task(task_gid):
 
 cli.add_command(notion_commands)
 cli.add_command(github_commands)
+cli.add_command(git_commands)
 
 
 if __name__ == "__main__":

@@ -1,7 +1,7 @@
 {
     "_meta": {
         "hash": {
-            "sha256": "61403eb8ec4595c1a8c3d79e7a2030552c8c21356f1d06221a04da6208ab05fb"
+            "sha256": "5b1760d4728967ba23c8c7fa1f5701a2216fc26b53173086bf0f39542d7652e0"
         },
         "pipfile-spec": 6,
         "requires": {
@@ -913,6 +913,23 @@
             ],
             "markers": "python_version >= '3.9'",
             "version": "==1.8.0"
+        },
+        "gitdb": {
+            "hashes": [
+                "sha256:5ef71f855d191a3326fcfbc0d5da835f26b13fbcba60c32c21091c349ffdb571",
+                "sha256:67073e15955400952c6565cc3e707c554a4eea2e428946f7a4c162fab9bd9bcf"
+            ],
+            "markers": "python_version >= '3.7'",
+            "version": "==4.0.12"
+        },
+        "gitpython": {
+            "hashes": [
+                "sha256:0f1229ec5c057bdabdeeda8bda4f17bda679ab33dbccc00f24e6a480553c8613",
+                "sha256:d66b0832aa8755c1a84892937282df0befb16c97e5a64aeebd68be9c5e323f53"
+            ],
+            "index": "pypi",
+            "markers": "python_version >= '3.8'",
+            "version": "==3.2.1"
         },
         "googleapis-common-protos": {
             "hashes": [
@@ -2386,6 +2403,14 @@
             ],
             "markers": "python_version >= '2.7' and python_version != '3.0' and python_version != '3.1' and python_version != '3.2'",
             "version": "==1.17.0"
+        },
+        "smmap": {
+            "hashes": [
+                "sha256:4d9debb8b99007ae47165abc08670bd74cb74b5227dda7f643eccc4e9eb5642c",
+                "sha256:c106e05d5a61449cf6ba9a1e650227ecfb141590d2a98412103ff35d89fc7b2f"
+            ],
+            "markers": "python_version >= '3.7'",
+            "version": "==5.0.3"
         },
         "sniffio": {
             "hashes": [
