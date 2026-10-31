@@ -8,15 +8,19 @@ import json
 import logging
 import time
 import traceback
-from dataclasses import dataclass
+from concurrent.futures import ThreadPoolExecutor
+from contextlib import nullcontext
+from dataclasses import dataclass, field
 from pathlib import Path
 
 from jinja2 import StrictUndefined, Template
 
+from workshop.agent.builtin_tools import BuiltinTools
 from workshop.agent.exceptions import (
     FormatError,
     InterruptAgentFlow,
     LimitsExceeded,
+    Submitted,
     TimeExceeded,
 )
 from workshop.agent.prompts import DEFAULT_INSTANCE_TEMPLATE, DEFAULT_SYSTEM_TEMPLATE
@@ -41,12 +45,18 @@ class AgentConfig:
     """Exit after this many format errors in a row (0 = no limit)."""
     output_path: Path | None = None
     """Save the trajectory to this path."""
+    parallel_tools: list[str] = field(default_factory=list)
+    """Tool names allowed to run concurrently; all others are serial barriers."""
+    max_parallel_tools: int = 4
+    """Maximum number of concurrent tool calls."""
 
 
 class DefaultAgent:
     def __init__(self, model, env, *, config_class: type = AgentConfig, **kwargs):
         """See AgentConfig for permitted keyword arguments."""
         self.config = config_class(**kwargs)
+        if self.config.max_parallel_tools < 1:
+            raise ValueError("max_parallel_tools must be at least 1")
         self.messages: list[dict] = []
         self.model = model
         self.env = env
@@ -56,6 +66,8 @@ class DefaultAgent:
         self.n_calls = 0
         self.n_consecutive_format_errors = 0
         self._start_time = time.time()
+        self.mcp_runtime = None
+        self.builtin_tools = BuiltinTools(env)
 
     def get_template_vars(self, **kwargs) -> dict:
         return recursive_merge(
@@ -96,9 +108,30 @@ class DefaultAgent:
         )
 
     def run(self, task: str = "", **kwargs) -> dict:
-        """Run step() until the agent is finished. Returns a dict with exit_status and submission."""
-        self.extra_template_vars |= {"task": task, **kwargs}
+        """Run until the agent finishes, closing MCP sessions afterward."""
+        try:
+            if start := getattr(self.env, "ensure_started", None):
+                start()
+            with self.mcp_runtime or nullcontext() as runtime:
+                if (
+                    getattr(getattr(self.model, "config", None), "protocol", None)
+                    == "native"
+                ):
+                    self.model.native_tools = self.builtin_tools.tools + (
+                        runtime.tools if runtime else []
+                    )
+                return self._run(task, **kwargs)
+        finally:
+            if cleanup := getattr(self.env, "cleanup", None):
+                cleanup()
+
+    def _run(self, task: str = "", **kwargs) -> dict:
+        self.extra_template_vars = {"task": task, **kwargs}
         self.messages = []
+        self.cost = 0.0
+        self.n_calls = 0
+        self.n_consecutive_format_errors = 0
+        self._start_time = time.time()
         if reset := getattr(self.model, "reset", None):
             reset()
         self.add_messages(
@@ -117,7 +150,12 @@ class DefaultAgent:
                 self.n_consecutive_format_errors = 0
             except FormatError as e:
                 # The call was billed before parsing failed, so query() never got to charge it.
-                self.cost += e.messages[0].get("extra", {}).get("cost", 0.0)
+                error_extra = e.messages[0].get("extra", {})
+                self.cost += error_extra.get("cost", 0.0)
+                if "response" in error_extra:
+                    self.add_messages(
+                        {"role": "assistant", "content": error_extra["response"]}
+                    )
                 self.n_consecutive_format_errors += 1
                 if (
                     0
@@ -185,10 +223,57 @@ class DefaultAgent:
 
     def execute_actions(self, message: dict) -> list[dict]:
         """Execute actions in message, add observation messages, return them."""
-        outputs = [
-            self.env.execute(action)
-            for action in message.get("extra", {}).get("actions", [])
-        ]
+        if message.get("extra", {}).get("native_final"):
+            submission = message.get("content", "")
+            raise Submitted(
+                {
+                    "role": "exit",
+                    "content": submission,
+                    "extra": {"exit_status": "Submitted", "submission": submission},
+                }
+            )
+        actions = message.get("extra", {}).get("actions", [])
+        outputs = []
+        parallel_batch = []
+
+        def execute(action):
+            if (
+                "tool" in action
+                and getattr(getattr(self.model, "config", None), "protocol", None)
+                == "native"
+            ):
+                if action["tool"] in {tool.name for tool in self.builtin_tools.tools}:
+                    return self.builtin_tools.execute(action)
+                if self.mcp_runtime:
+                    return self.mcp_runtime.execute(action)
+                return {
+                    "output": f"Unknown tool: {action['tool']}",
+                    "returncode": 1,
+                    "exception_info": "",
+                }
+            return self.env.execute(action)
+
+        def flush():
+            if parallel_batch:
+                with ThreadPoolExecutor(
+                    max_workers=self.config.max_parallel_tools
+                ) as pool:
+                    outputs.extend(pool.map(execute, parallel_batch))
+                parallel_batch.clear()
+
+        for action in actions:
+            if action.get("tool") in self.config.parallel_tools:
+                parallel_batch.append(action)
+            else:
+                flush()
+                outputs.append(execute(action))
+        flush()
+        for output in outputs:
+            text = output.get("output", "")
+            if len(text) > 50000:
+                output["output"] = (
+                    text[:25000] + "\n[output truncated]\n" + text[-25000:]
+                )
         return self.add_messages(
             *self.model.format_observation_messages(
                 message, outputs, self.get_template_vars()

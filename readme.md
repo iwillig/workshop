@@ -50,7 +50,7 @@ defined.
 Research and context is the first component. It provides read-only
 Asana task, Notion page, GitHub issue and pull request, and local Git review commands; see [its
 documentation](research_context/readme.md). The [coding agent](docs/agent.rst)
-can run tasks with an LLM model and an interactive approval step. The ideas
+can run tasks with an LLM model without tool-call approvals. The ideas
 below describe additional capabilities, not implemented features.
 
 - Prompt builder
@@ -71,7 +71,9 @@ below describe additional capabilities, not implemented features.
 ## Coding agent
 
 See the [agent guide](docs/agent.rst) for setup, usage, and execution risks.
-Local commands run with your user permissions and are not sandboxed.
+The agent and configuration are separate packages, with benchmark and evaluation
+package boundaries reserved for future work. Local commands run with your user
+permissions and are not sandboxed.
 
 ## Project templates
 

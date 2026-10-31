@@ -5,16 +5,14 @@ https://mini-swe-agent.com) with the litellm model layer replaced by the llm
 library, so any model with an llm plugin (Anthropic, OpenAI, Ollama, ...) can
 drive the agent. The design commitments are the same as upstream:
 
-- bash is the only tool; actions are parsed from fenced text, not tool calls
-- the message history is strictly linear and doubles as the trajectory
-- every action runs as an independent subprocess, so sandboxing is one method
+- supports legacy fenced shell commands and native LLM tool calls
+- the message history doubles as the trajectory
+- execution environments provide local or container-based command execution
 """
 
-from workshop.agent.config import DEFAULT_CONFIG_PATH, build_agent, load_config
 from workshop.agent.default_agent import AgentConfig, DefaultAgent
 from workshop.agent.environments import DockerEnvironment, LocalEnvironment
 from workshop.agent.exceptions import (
-    CommandRejected,
     FormatError,
     InterruptAgentFlow,
     LimitsExceeded,
@@ -27,7 +25,6 @@ from workshop.agent.models import LlmModel
 
 __all__ = [
     "AgentConfig",
-    "CommandRejected",
     "DEFAULT_CONFIG_PATH",
     "build_agent",
     "load_config",
@@ -43,5 +40,15 @@ __all__ = [
     "TimeExceeded",
     "UserInterruption",
 ]
+
+
+def __getattr__(name):
+    """Keep legacy configuration exports without coupling runtime imports to YAML."""
+    if name in {"DEFAULT_CONFIG_PATH", "build_agent", "load_config"}:
+        import workshop.agent_config as config
+
+        return getattr(config, name)
+    raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
+
 
 __version__ = "0.1.0"

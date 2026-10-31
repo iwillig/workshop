@@ -4,7 +4,6 @@
 # workshop.agent.prompts when omitted; set them here to override.
 agent:
   agent_class: interactive
-  mode: confirm
   step_limit: 50
 environment:
   environment_class: local

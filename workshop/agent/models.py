@@ -110,6 +110,8 @@ def extract_prompt(
 class LlmModelConfig:
     model_name: str | None = None
     """An llm model id or alias. None uses the llm library's default model."""
+    protocol: str = "shell"
+    """Use legacy fenced shell commands or native LLM tool calls."""
     model_options: dict[str, Any] = field(default_factory=dict)
     """Options passed to llm's prompt() call, e.g. temperature."""
     input_cost_per_mtok: float = 0.0
@@ -125,6 +127,9 @@ class LlmModelConfig:
 class LlmModel:
     def __init__(self, *, config_class: type = LlmModelConfig, **kwargs):
         self.config = config_class(**kwargs)
+        if self.config.protocol not in {"shell", "native"}:
+            raise ValueError("model protocol must be 'shell' or 'native'")
+        self.native_tools = []
         self._model = llm.get_model(self.config.model_name)
         self.reset()
 
@@ -135,6 +140,18 @@ class LlmModel:
     def query(self, messages: list[dict], **kwargs) -> dict:
         system, prompt = extract_prompt(messages, len(self._conversation.responses))
         options = self.config.model_options | kwargs
+        if self.config.protocol == "native":
+            options = options | {"tools": self.native_tools}
+            results = []
+            for item in reversed(messages):
+                if item.get("role") == "assistant":
+                    break
+                result = item.get("extra", {}).get("native_tool_result")
+                if result:
+                    results.append(llm.ToolResult(**result))
+            if results:
+                options["tool_results"] = list(reversed(results))
+                prompt = None
         last_error: Exception | None = None
         for attempt in range(self.config.retry_attempts):
             if attempt:
@@ -148,6 +165,25 @@ class LlmModel:
         else:
             raise last_error  # type: ignore[misc]
         cost_extra = self._cost(response)
+        if self.config.protocol == "native":
+            actions = [
+                {
+                    "tool": call.name,
+                    "arguments": call.arguments,
+                    "tool_call_id": call.tool_call_id,
+                }
+                for call in response.tool_calls()
+            ]
+            return {
+                "role": "assistant",
+                "content": content,
+                "extra": {
+                    "actions": actions,
+                    "native_final": not actions,
+                    "timestamp": time.time(),
+                    **cost_extra,
+                },
+            }
         try:
             actions = parse_regex_actions(
                 content,
@@ -184,6 +220,27 @@ class LlmModel:
     def format_observation_messages(
         self, message: dict, outputs: list[dict], template_vars: dict | None = None
     ) -> list[dict]:
+        if self.config.protocol == "native":
+            actions = message.get("extra", {}).get("actions", [])
+            return [
+                {
+                    "role": "user",
+                    "content": output.get("output", ""),
+                    "extra": {
+                        "native_tool_result": {
+                            "name": action["tool"],
+                            "output": (
+                                f"Exit code: {output.get('returncode')}\n"
+                                f"{output.get('exception_info', '')}\n{output.get('output', '')}"
+                                if action["tool"] == "bash"
+                                else output.get("output", "")
+                            ),
+                            "tool_call_id": action.get("tool_call_id"),
+                        }
+                    },
+                }
+                for action, output in zip(actions, outputs, strict=True)
+            ]
         return format_observation_messages(
             outputs,
             observation_template=self.config.observation_template,

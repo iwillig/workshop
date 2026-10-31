@@ -4,7 +4,7 @@ from pathlib import Path
 
 import click
 
-from workshop.agent.config import DEFAULT_CONFIG_PATH, build_agent, load_config
+from workshop.agent_config import DEFAULT_CONFIG_PATH, build_agent, load_config
 
 
 @click.group(name="agent")
@@ -23,13 +23,24 @@ def agent_commands():
     help="YAML config file (default: the packaged default config).",
 )
 @click.option(
+    "--agent",
+    "agent_name",
+    default=None,
+    help="Name of an agent in the YAML configuration.",
+)
+@click.option(
     "-m",
     "--model",
     "model_name",
     default=None,
     help="An llm model id or alias (default: llm's default model).",
 )
-@click.option("-y", "--yolo", is_flag=True, help="Run commands without confirmation.")
+@click.option(
+    "-y",
+    "--yolo",
+    is_flag=True,
+    help="Deprecated; commands already run without confirmation.",
+)
 @click.option(
     "-o",
     "--output",
@@ -50,14 +61,24 @@ def agent_commands():
     "--timeout", type=int, default=None, help="Per-command timeout in seconds."
 )
 def run_agent(
-    task, config_path, model_name, yolo, output, cwd, image, step_limit, timeout
+    task,
+    config_path,
+    agent_name,
+    model_name,
+    yolo,
+    output,
+    cwd,
+    image,
+    step_limit,
+    timeout,
 ):
     """Run the agent on a task. Flags override values from the YAML config."""
-    config = load_config(config_path or DEFAULT_CONFIG_PATH)
+    try:
+        config = load_config(config_path or DEFAULT_CONFIG_PATH, agent_name=agent_name)
+    except (ValueError, OSError) as exc:
+        raise click.ClickException(str(exc)) from exc
     if model_name:
         config["model"]["model_name"] = model_name
-    if yolo:
-        config["agent"]["mode"] = "yolo"
     if output:
         config["agent"]["output_path"] = output
     if step_limit is not None:
@@ -77,3 +98,5 @@ def run_agent(
         click.echo(result["submission"])
     if output:
         click.echo(f"trajectory saved to {output}")
+    if result.get("exit_status") != "Submitted":
+        raise click.exceptions.Exit(1)

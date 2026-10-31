@@ -25,9 +25,5 @@ class UserInterruption(InterruptAgentFlow):
     """Raised when the user interrupts the agent."""
 
 
-class CommandRejected(InterruptAgentFlow):
-    """Raised when the user rejects a proposed command in confirm mode."""
-
-
 class FormatError(InterruptAgentFlow):
     """Raised when the LM's output is not in the expected format."""

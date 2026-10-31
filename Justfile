@@ -29,7 +29,14 @@ install-dev:
 
 # Build the Sphinx documentation.
 docs:
-    pipenv run sphinx-build -W -b html docs docs/_build/html
+    #!/bin/sh
+    set -eu
+    pipenv_bin=pipenv
+    if command -v brew >/dev/null 2>&1; then
+        brew_pipenv="$(brew --prefix pipenv 2>/dev/null)/bin/pipenv"
+        if [ -x "$brew_pipenv" ]; then pipenv_bin="$brew_pipenv"; fi
+    fi
+    "$pipenv_bin" run sphinx-build -W -b html docs docs/_build/html
 
 # Build a PDF from the single-page Sphinx documentation using Google Chrome on macOS.
 docs-pdf:

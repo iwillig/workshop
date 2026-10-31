@@ -159,7 +159,6 @@ class DockerEnvironment:
         self.config = config_class(**kwargs)
         if not self.config.image:
             raise ValueError("DockerEnvironment requires an image")
-        self._start_container()
 
     def _start_container(self):
         container_name = f"workshop-agent-{uuid.uuid4().hex[:8]}"
@@ -194,6 +193,7 @@ class DockerEnvironment:
     ) -> dict[str, Any]:
         command = action.get("command", "")
         cwd = cwd or self.config.cwd
+        self.ensure_started()
         assert self.container_id, "Container not started"
         cmd = [self.config.executable, "exec", "-w", cwd]
         for key in self.config.forward_env:
@@ -237,13 +237,26 @@ class DockerEnvironment:
             }
         }
 
-    def cleanup(self):
-        if getattr(self, "container_id", None) is not None:
-            cmd = (
-                f"(timeout 60 {self.config.executable} stop {self.container_id} "
-                f"|| {self.config.executable} rm -f {self.container_id}) >/dev/null 2>&1 &"
-            )
-            subprocess.Popen(cmd, shell=True)
+    def ensure_started(self):
+        if self.container_id is None:
+            self._start_container()
 
-    def __del__(self):
-        self.cleanup()
+    def cleanup(self):
+        if self.container_id is None:
+            return
+        container_id = self.container_id
+        try:
+            subprocess.run(
+                [self.config.executable, "stop", container_id],
+                capture_output=True,
+                timeout=60,
+                check=True,
+            )
+        except subprocess.SubprocessError, OSError:
+            subprocess.run(
+                [self.config.executable, "rm", "-f", container_id],
+                capture_output=True,
+                timeout=60,
+                check=True,
+            )
+        self.container_id = None

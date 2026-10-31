@@ -1,26 +1,57 @@
 Coding agent
 ============
 
-The workshop coding agent asks an ``llm`` model for shell commands, runs
-those commands, and sends their output back to the model. It continues until
-the model submits a result or a configured limit stops the run. The default
-interactive agent asks for approval before each command.
+The workshop coding agent uses an ``llm`` model to work on a task. In the
+default shell protocol, it asks the model for shell commands and sends their
+output back. The optional native protocol lets a tool-capable model call
+built-in tools and configured MCP servers. A run ends when the model submits a
+result or a configured limit stops it.
+
+The default interactive agent displays responses and runs actions without
+asking for approval. Runs are foreground processes; managed background jobs
+are not implemented.
+
+Subsystems
+----------
+
+The agent system is organized as sibling Python packages:
+
+* ``workshop.agent`` contains the existing LLM-based agent, model and execution
+  environments, built-in tools, and MCP integration.
+* ``workshop.agent_config`` loads named or legacy YAML configurations and
+  builds agents. Configuration loading does not require constructing an agent.
+  Existing ``workshop.agent.config`` imports remain available for compatibility.
+* ``workshop.agent_benchmark`` is a placeholder for benchmark suites and runs.
+* ``workshop.agent_eval`` is a placeholder for evaluations and trace review.
+
+The benchmark and evaluation packages do not yet provide runners or APIs.
 
 Before you run it
 -----------------
 
-Install the workshop and activate its environment as described in
-``research_context/readme.md``. Configure a model supported by the installed
-`LLM library <https://llm.datasette.io/>`_. A provider may require an API key
-or an additional LLM plugin. Use ``llm models list`` to see available model
-IDs and ``llm keys`` for provider key management. Check the provider's setup
-instructions before use. The model receives the task and command observations;
-an external provider can receive data from the workspace.
+From the repository root, install the dependencies and the workshop command:
 
-**Local execution is not a sandbox.** Commands run with your user's permissions
-and inherit the host environment, which may contain credentials. Review every
-command and use a disposable workspace without secrets. Approval is not a
-security boundary: a command you approve can make changes or disclose data.
+.. code-block:: shell
+
+   pipenv sync
+   pipenv run pip install -e .
+   pipenv run workshop agent run --help
+
+The project requires Python 3.15 as specified in ``Pipfile``. Either prefix
+commands below with ``pipenv run`` or activate the environment with
+``pipenv shell``. Research service tokens are not required to run the agent.
+
+Configure a model supported by the installed `LLM library
+<https://llm.datasette.io/>`_. A provider may require an API key or an
+additional LLM plugin. Use ``pipenv run llm models list`` to see available
+model IDs and ``pipenv run llm keys`` for provider key management. Check the
+provider's setup instructions before use. The model receives the task and tool
+observations; an external provider can receive data from the workspace.
+
+**Local execution is not a sandbox.** Commands run without confirmation, with
+your user's permissions, and inherit the host environment, which may contain
+credentials. Commands can modify files or disclose data. Use a disposable
+workspace without secrets.
 
 Run a task
 ----------
@@ -36,10 +67,11 @@ Start with a small task in a disposable directory:
 The default model is the LLM library's configured default. Add ``--model
 MODEL_ID`` to select another installed model. The task and workspace path are
 examples; replace them with values appropriate for your machine. The agent
-prints the model response and asks whether to run each command. Press Enter to
-approve, or type feedback and press Enter to reject it. The feedback is sent
-back to the model. Review the resulting files and run independent tests before
-using the output.
+prints model responses and runs commands without prompting. Review the resulting
+files and run independent tests before using the output.
+
+The CLI exits with status zero only when the agent submits a result; limits and
+other non-submission outcomes produce a nonzero exit status.
 
 Each command runs in a new shell process. File changes persist in the workspace,
 but shell variables and changes to the current directory do not persist between
@@ -57,14 +89,15 @@ Command options
 ---------------
 
 ``workshop agent run --help`` lists the options. Values supplied on the command
-line override the corresponding YAML configuration values.
+line override the corresponding YAML configuration values. Use ``--agent NAME``
+to select an agent from a named configuration file.
 
 * ``-t, --task TEXT``: required task for the agent.
 * ``-c, --config PATH``: YAML configuration file; the packaged default is used
   when omitted.
+* ``--agent NAME``: select a named definition from the YAML configuration.
 * ``-m, --model MODEL_ID``: LLM model ID or alias.
-* ``-y, --yolo``: run commands without confirmation. Do not use this on an
-  untrusted task or workspace.
+* ``-y, --yolo``: deprecated compatibility flag; commands already run without confirmation.
 * ``-o, --output PATH``: save the trajectory as JSON.
 * ``--cwd PATH``: command working directory. With Docker, this path is inside
   the container, not on the host.
@@ -75,7 +108,7 @@ line override the corresponding YAML configuration values.
 Configuration and limits
 ------------------------
 
-The packaged configuration is ``workshop/agent/configs/default.yaml``. Copy it
+The packaged configuration is ``workshop/agent_config/configs/default.yaml``. Copy it
 to a local file and pass that file with ``--config`` to change settings. The
 three sections select the agent, execution environment, and model. For example:
 
@@ -83,7 +116,6 @@ three sections select the agent, execution environment, and model. For example:
 
    agent:
      agent_class: interactive
-     mode: confirm
      step_limit: 10
      wall_time_limit_seconds: 300
      cost_limit: 1.0
@@ -97,6 +129,18 @@ three sections select the agent, execution environment, and model. For example:
      input_cost_per_mtok: 0.0
      output_cost_per_mtok: 0.0
 
+The agent scheduler accepts ``agent.parallel_tools`` (a list of tool names) and
+``agent.max_parallel_tools`` (a positive integer, default 4). Calls are serial
+by default. Consecutive calls whose ``tool`` names are listed may run concurrently;
+other calls are serial barriers, and results retain request order. Only mark a
+tool parallel-safe if overlapping it with other listed tools is acceptable:
+concurrent writes and commands can race. The fenced-shell protocol produces
+only one action at a time. Native tool-call batches can use these settings.
+
+Tool output sent to the model is limited to 50,000 characters, with the middle
+removed when necessary. This bounds model input and trajectories, not the memory
+used while a subprocess or server produces its output.
+
 The packaged configuration sets a 50-call limit and a 30-second command timeout.
 The agent also defaults to a cost limit of 3.0, no wall-time limit, and three
 consecutive format errors. Limits are checked between model calls; they do not
@@ -106,10 +150,177 @@ limit. Cost is calculated from reported token usage and the configured prices
 per million tokens. Prices default to zero, so the cost limit cannot control
 spending unless prices and usage are available. Check provider billing separately.
 
-The default agent uses Jinja prompt templates and expects exactly one fenced
-``mswea_bash_command`` block per response. Model and agent configuration can
-override the prompt templates. A model that does not follow this format may
-stop the run after repeated format errors.
+The default shell protocol uses Jinja prompt templates and expects exactly one
+fenced ``mswea_bash_command`` block per response. Model and agent configuration
+can override the prompt templates. A model that does not follow this format may
+stop the run after repeated format errors. An opt-in native tool-call protocol
+is available for MCP servers, as described below.
+
+To keep the system prompt in a separate UTF-8 file, set
+``agent.system_template_path`` in the YAML configuration:
+
+.. code-block:: yaml
+
+   agent:
+     agent_class: interactive
+     system_template_path: prompts/system.txt
+
+Relative paths are resolved from the directory containing the YAML file;
+absolute paths are also supported. The file is rendered as a Jinja template
+when the agent starts, just like an inline ``system_template``. Set only one
+of ``system_template`` and ``system_template_path``. Prompt templates are
+trusted configuration: template variables can include host environment values,
+which may be sent to the model if referenced.
+
+Live model tests
+----------------
+
+``tests/test_agent_model_live.py`` sends test prompts to the team's Hugging Face
+OpenAI-compatible endpoint using ``unsloth/Qwen3.8-27B-GGUF``. Set ``HF_TOKEN``
+in the environment before running the test suite; do not put the token in the
+repository. These tests require network access and a running, authorized
+endpoint, and may incur inference costs. They fail if the token is missing.
+
+.. code-block:: shell
+
+   pipenv run python -m pytest tests/test_agent_model_live.py
+
+MCP servers
+-----------
+
+The native protocol can discover MCP tools over stdio or Streamable HTTP. Define
+servers in the configuration and select a model that supports native tool
+calls. For example:
+
+.. code-block:: yaml
+
+   model:
+     model_class: llm
+     model_name: your-tool-capable-model
+     protocol: native
+   mcp_servers:
+     local:
+       transport: stdio
+       command: python
+       args: ["/path/to/server.py"]
+     remote:
+       transport: http
+       url: https://example.com/mcp
+       headers_env:
+         Authorization: MCP_AUTH_HEADER
+
+Run the agent with ``workshop agent run --config agent.yaml --task '...'``.
+Server tools are named ``mcp__SERVER__TOOL``. Each server also provides
+``list_resources``, ``read_resource``, ``list_prompts``, and ``get_prompt``
+tools with the same prefix. Sessions open at the start of a run and close when
+it ends. The final model response is the submission. Tool results and server
+errors are sent to the model; trajectories may contain sensitive data.
+
+Native mode also provides these built-in tools to the model:
+
+* ``read`` reads a UTF-8 file. Its optional ``offset`` and ``limit`` are
+  positive line numbers/counts; the defaults are line 1 and 2,000 lines.
+* ``edit`` replaces a nonempty ``old_text`` with ``new_text`` only when the
+  old text occurs exactly once in an existing UTF-8 file.
+* ``bash`` runs a command in the configured local or Docker environment.
+
+Read and edit resolve paths within the local workspace and reject paths that
+resolve outside it. They are not yet available for Docker environments. Bash
+is not restricted to the workspace. The model, not the CLI user, supplies tool
+arguments during a run.
+
+``headers_env`` maps HTTP header names to environment-variable names. For the
+example above, set ``MCP_AUTH_HEADER`` to the complete authorization value,
+such as ``Bearer ...``. Missing variables cause connection setup to fail. Use
+HTTPS for credentials; OAuth is not yet supported. Configure only trusted
+servers: stdio servers execute local programs, remote
+servers receive tool arguments, and tool calls run without approval. Tool
+responses are untrusted data and may contain instructions or sensitive content.
+
+Named agents
+------------
+
+A YAML file may define multiple agents. For example, create ``agents.yaml``
+and replace the model ID and workspace paths with values from your environment:
+
+.. code-block:: shell
+
+   mkdir -p prompts
+   printf '%s\n' 'Review code. Report findings without modifying files.' > prompts/reviewer.txt
+
+Then add these definitions to ``agents.yaml``:
+
+.. code-block:: yaml
+
+   agents:
+     reviewer:
+       model:
+         protocol: native
+         model_name: your-tool-capable-model
+       prompts:
+         system_file: prompts/reviewer.txt
+       environment:
+         environment_class: local
+         cwd: /path/to/workspace
+       limits:
+         step_limit: 20
+       tools:
+         read: {}
+     coder:
+       model:
+         protocol: native
+         model_name: your-tool-capable-model
+       environment:
+         environment_class: local
+         cwd: /path/to/workspace
+       tools:
+         read: {}
+         edit: {}
+         bash: {}
+
+.. code-block:: shell
+
+   workshop agent run --config agents.yaml --agent reviewer --task 'Review the code'
+
+``prompts.system_file`` resolves relative to the YAML file; ``prompts.system``
+and ``prompts.instance`` provide inline templates. ``limits`` accepts agent
+configuration fields such as ``step_limit``. ``tools`` selects built-in native
+tools; omit it to use all available built-ins. Per-tool options are not yet
+supported. Selecting only ``read`` restricts the built-in tools; configured MCP
+server tools are separate and are still exposed. MCP servers can be configured
+within an agent using ``mcp_servers``. Legacy single-agent files remain
+supported without ``--agent``. Supplying ``--agent`` is required for named
+files. These commands run in the foreground; managed background jobs are not
+yet implemented.
+
+For example, choose the coder and override its model-call limit for one run:
+
+.. code-block:: shell
+
+   workshop agent run --config agents.yaml --agent coder --step-limit 5 \\
+     --task 'Fix the failing test and explain the change.'
+
+CLI overrides apply to the selected definition for that run; they do not edit
+its YAML file.
+
+Troubleshooting
+---------------
+
+* **Unknown model or missing API key:** check ``llm models list`` and the
+  provider's setup instructions in the same Pipenv environment.
+* **Named agent selection fails:** pass ``--agent NAME`` for a file with an
+  ``agents`` mapping; omit it for a legacy single-agent file.
+* **Repeated format errors:** the shell protocol requires a model response with
+  exactly one ``mswea_bash_command`` block. Check the model and prompt; use
+  ``model.protocol: native`` only with a model that supports native tool calls.
+* **MCP connection fails:** check that the server is running, its transport and
+  URL or command are correct, and any ``headers_env`` variables are set. A
+  stdio server runs on the host; its command must be available there.
+* **Read or edit is unavailable:** those built-ins require the local
+  environment and an existing UTF-8 file whose resolved path is inside the
+  workspace. Docker native mode exposes Bash, not read/edit.
+* **A run hits a limit:** inspect its printed status and trajectory. Adjust the
+  configured limit only if the additional execution and cost are acceptable.
 
 Docker execution
 ----------------
@@ -127,10 +338,13 @@ mounted or copied by default, and container files are not automatically copied
 back. ``--cwd`` names a directory inside the container; it must exist. The
 container environment is not a hardened sandbox: network access and other
 Docker defaults apply, and a command timeout does not guarantee that the
-container process has stopped. Container cleanup is attempted after use, but
-verify and remove leftover containers if necessary. See
+container process has stopped. Cleanup waits for Docker to stop the container
+and falls back to forced removal. Abrupt process termination can still leave
+containers behind; verify and remove leftovers if necessary. See
 ``docs/mini-agent-sandbox.rst`` for the separate proposed hardened sandbox.
 
-To enable unattended execution, ``--yolo`` skips approval. It does not add
-isolation or restrictions. Use it only where the execution environment and
-consequences are acceptable.
+Commands run unattended in both local and Docker environments. Use the agent
+only where the execution environment and consequences are acceptable. Existing
+configurations with ``mode: confirm`` must remove that setting; the agent refuses
+to run them rather than silently removing their former confirmation behavior.
+The legacy ``mode: yolo`` setting is still accepted.

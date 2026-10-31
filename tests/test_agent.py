@@ -1,10 +1,12 @@
 import json
+import threading
 
 import pytest
 
 from workshop.agent.default_agent import DefaultAgent
 from workshop.agent.environments import LocalEnvironment
 from workshop.agent.exceptions import FormatError, Submitted
+from workshop.agent.interactive import InteractiveAgent
 from workshop.agent.models import (
     DEFAULT_ACTION_REGEX,
     extract_prompt,
@@ -141,6 +143,88 @@ def test_agent_runs_to_submission(tmp_path):
     assert data["info"]["exit_status"] == "Submitted"
     roles = [m["role"] for m in data["messages"]]
     assert roles == ["system", "user", "assistant", "user", "assistant", "exit"]
+
+
+def test_interactive_agent_runs_without_prompt(monkeypatch):
+    def unexpected_prompt(*args, **kwargs):
+        raise AssertionError("agent must not prompt for approval")
+
+    monkeypatch.setattr("click.prompt", unexpected_prompt)
+    model = ScriptedModel(response("echo COMPLETE_TASK_AND_SUBMIT_FINAL_OUTPUT"))
+    result = InteractiveAgent(model, LocalEnvironment(timeout=5)).run("finish")
+    assert result["exit_status"] == "Submitted"
+
+
+def test_reused_agent_has_fresh_run_limits():
+    model = ScriptedModel(
+        response("echo COMPLETE_TASK_AND_SUBMIT_FINAL_OUTPUT"),
+        response("echo COMPLETE_TASK_AND_SUBMIT_FINAL_OUTPUT"),
+    )
+    agent = DefaultAgent(model, LocalEnvironment(timeout=5), step_limit=1)
+    assert agent.run("first")["exit_status"] == "Submitted"
+    assert agent.run("second")["exit_status"] == "Submitted"
+    assert agent.n_calls == 1
+
+
+def test_parallel_tools_overlap_and_serial_action_is_barrier():
+    barrier = threading.Barrier(2, timeout=2)
+    completed = []
+
+    class Environment:
+        def execute(self, action):
+            name = action["name"]
+            if name in ("first", "second"):
+                barrier.wait()
+            else:
+                assert set(completed) == {"first", "second"}
+            completed.append(name)
+            return {"output": name, "returncode": 0, "exception_info": ""}
+
+        def get_template_vars(self):
+            return {}
+
+    model = ScriptedModel()
+    agent = DefaultAgent(model, Environment(), parallel_tools=["read"])
+    message = {
+        "extra": {
+            "actions": [
+                {"tool": "read", "name": "first"},
+                {"tool": "read", "name": "second"},
+                {"tool": "edit", "name": "third"},
+            ]
+        }
+    }
+    observations = agent.execute_actions(message)
+    assert [item["extra"]["raw_output"] for item in observations] == [
+        "first",
+        "second",
+        "third",
+    ]
+
+
+def test_tools_are_serial_by_default():
+    seen = []
+
+    class Environment:
+        def execute(self, action):
+            seen.append(action["name"])
+            return {"output": action["name"], "returncode": 0, "exception_info": ""}
+
+        def get_template_vars(self):
+            return {}
+
+    agent = DefaultAgent(ScriptedModel(), Environment())
+    agent.execute_actions(
+        {
+            "extra": {
+                "actions": [
+                    {"tool": "read", "name": "first"},
+                    {"tool": "read", "name": "second"},
+                ]
+            }
+        }
+    )
+    assert seen == ["first", "second"]
 
 
 def test_agent_step_limit(tmp_path):

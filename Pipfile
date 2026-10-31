@@ -26,6 +26,8 @@ selenium = "*"
 template-engine = {path = "./template_engine", editable = true}
 pyyaml = "*"
 gitpython = "*"
+mcp = "*"
+textual = "*"
 
 [dev-packages]
 pytest = "*"

@@ -6,7 +6,7 @@ build-backend = "setuptools.build_meta"
 name = "common-ai-workshop"
 version = "0.1.0"
 requires-python = ">=3.15"
-dependencies = ["asana", "click", "notion-client", "httpx", "python-dotenv", "selenium", "llm", "jinja2", "pyyaml", "gitpython"]
+dependencies = ["asana", "click", "notion-client", "httpx", "python-dotenv", "selenium", "llm", "jinja2", "pyyaml", "gitpython", "mcp>=2.3,<3"]
 
 [project.scripts]
 workshop = "workshop.cli:cli"
@@ -25,4 +25,4 @@ select = ["E4", "E7", "E9", "F"]
 include = ["workshop*", "research_context*"]
 
 [tool.setuptools.package-data]
-"workshop.agent" = ["configs/*.yaml"]
+"workshop.agent_config" = ["configs/*.yaml"]
