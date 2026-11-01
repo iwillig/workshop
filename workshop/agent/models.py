@@ -130,6 +130,7 @@ class LlmModel:
         if self.config.protocol not in {"shell", "native"}:
             raise ValueError("model protocol must be 'shell' or 'native'")
         self.native_tools = []
+        self.stream_callback = None
         self._model = llm.get_model(self.config.model_name)
         self.reset()
 
@@ -158,7 +159,7 @@ class LlmModel:
                 time.sleep(self.config.retry_wait_seconds * attempt)
             try:
                 response = self._conversation.prompt(prompt, system=system, **options)
-                content = response.text()
+                content = self._read_response(response)
                 break
             except Exception as e:
                 last_error = e
@@ -200,6 +201,34 @@ class LlmModel:
             "content": content,
             "extra": {"actions": actions, "timestamp": time.time(), **cost_extra},
         }
+
+    def _read_response(self, response):
+        """Stream bounded display snippets without changing the canonical response."""
+        if self.stream_callback is None or not hasattr(response, "stream_events"):
+            return response.text()
+        self.stream_callback("reset", "")
+        reasoning = ""
+        text = ""
+        last_emit = 0.0
+        for event in response.stream_events():
+            if event.type not in {"reasoning", "text"} or not event.chunk:
+                continue
+            chunk = "".join(c for c in event.chunk if c in "\n\t" or ord(c) >= 32)
+            if event.type == "reasoning":
+                reasoning = (reasoning + chunk)[-1000:]
+            else:
+                text = (text + chunk)[-1000:]
+            now = time.monotonic()
+            if now - last_emit >= 0.1:
+                self.stream_callback(
+                    "reasoning" if reasoning else "response", reasoning or text
+                )
+                last_emit = now
+        if reasoning or text:
+            self.stream_callback(
+                "reasoning" if reasoning else "response", reasoning or text
+            )
+        return response.text()
 
     def _cost(self, response) -> dict:
         usage: dict[str, int | None] = {}

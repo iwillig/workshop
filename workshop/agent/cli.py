@@ -1,8 +1,11 @@
 """Command line interface for the workshop mini coding agent."""
 
+import os
+import sys
 from pathlib import Path
 
 import click
+from rich.console import Console
 
 from workshop.agent_config import DEFAULT_CONFIG_PATH, build_agent, load_config
 
@@ -48,6 +51,11 @@ def agent_commands():
     default=None,
     help="Save the trajectory to this file.",
 )
+@click.option(
+    "--no-live",
+    is_flag=True,
+    help="Use plain output instead of the live terminal view.",
+)
 @click.option("--cwd", default=None, help="Working directory for commands.")
 @click.option(
     "--image",
@@ -67,6 +75,7 @@ def run_agent(
     model_name,
     yolo,
     output,
+    no_live,
     cwd,
     image,
     step_limit,
@@ -92,11 +101,57 @@ def run_agent(
         config["environment"]["image"] = image
         config["environment"].setdefault("cwd", "/")
     agent = build_agent(config)
-    result = agent.run(task)
+    from workshop.agent.interactive import InteractiveAgent
+
+    if (
+        not no_live
+        and os.name == "posix"
+        and sys.stdin.isatty()
+        and sys.stdout.isatty()
+        and isinstance(agent, InteractiveAgent)
+    ):
+        from workshop.agent.live_view import AgentLiveView
+        from workshop.agent.supervised import SupervisedAgent
+
+        view = AgentLiveView(SupervisedAgent(config), task)
+        outcome = view.run(inline=True)
+        if outcome is None:
+            raise click.ClickException("Live view exited without an agent result")
+        if outcome.get("tool_history"):
+            click.echo("Recent tools:")
+            for event in outcome["tool_history"]:
+                click.echo(event)
+        if outcome.get("tool_count"):
+            click.echo(outcome["tool_count"])
+        if outcome.get("error") is not None:
+            raise outcome["error"]
+        result = outcome["result"]
+        if view.latest_usage.startswith("[tokens]"):
+            click.echo(view.latest_usage)
+        if getattr(view, "latest_thinking", "") != "No model output yet":
+            click.echo(view.latest_thinking)
+    else:
+        result = agent.run(task)
     click.echo(f"exit status: {result.get('exit_status', '')}")
     if result.get("submission"):
-        click.echo(result["submission"])
+        submission = result["submission"]
+        lines = submission.splitlines(keepends=True)
+        preview = "".join(lines[:40])[:4000]
+        truncated = len(preview) < len(submission)
+        Console().print(preview, markup=False, highlight=False, soft_wrap=True)
+        if truncated:
+            if output:
+                click.echo("[Result truncated; full submission is in the trajectory.]")
+            else:
+                click.echo(
+                    "[Result truncated; use --output to save the full submission in a future run.]"
+                )
     if output:
         click.echo(f"trajectory saved to {output}")
+    if result.get("exit_status") == "UserInterruption":
+        click.echo(
+            "Interrupted. Changes, remote work, or cleanup may be incomplete.", err=True
+        )
+        raise click.exceptions.Exit(130)
     if result.get("exit_status") != "Submitted":
         raise click.exceptions.Exit(1)

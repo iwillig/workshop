@@ -27,7 +27,8 @@ template-engine = {path = "./template_engine", editable = true}
 pyyaml = "*"
 gitpython = "*"
 mcp = "*"
-textual = "*"
+textual = ">=8.2,<9"
+rich = "*"
 
 [dev-packages]
 pytest = "*"

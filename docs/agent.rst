@@ -7,9 +7,10 @@ output back. The optional native protocol lets a tool-capable model call
 built-in tools and configured MCP servers. A run ends when the model submits a
 result or a configured limit stops it.
 
-The default interactive agent displays responses and runs actions without
-asking for approval. Runs are foreground processes; managed background jobs
-are not implemented.
+The default interactive agent displays concise tool progress and runs actions without
+asking for approval. In a POSIX terminal it uses an inline Textual view showing
+activity, elapsed time, and reported token usage. Runs are foreground processes;
+managed background jobs are not implemented.
 
 Subsystems
 ----------
@@ -67,8 +68,9 @@ Start with a small task in a disposable directory:
 The default model is the LLM library's configured default. Add ``--model
 MODEL_ID`` to select another installed model. The task and workspace path are
 examples; replace them with values appropriate for your machine. The agent
-prints model responses and runs commands without prompting. Review the resulting
-files and run independent tests before using the output.
+prints tool progress and runs commands without prompting. It prints the final
+submission once when the run finishes. Review the resulting files and run
+independent tests before using the output.
 
 The CLI exits with status zero only when the agent submits a result; limits and
 other non-submission outcomes produce a nonzero exit status.
@@ -96,6 +98,7 @@ to select an agent from a named configuration file.
 * ``-c, --config PATH``: YAML configuration file; the packaged default is used
   when omitted.
 * ``--agent NAME``: select a named definition from the YAML configuration.
+* ``--no-live``: use plain progress output rather than the Textual view.
 * ``-m, --model MODEL_ID``: LLM model ID or alias.
 * ``-y, --yolo``: deprecated compatibility flag; commands already run without confirmation.
 * ``-o, --output PATH``: save the trajectory as JSON.
@@ -302,6 +305,70 @@ For example, choose the coder and override its model-call limit for one run:
 
 CLI overrides apply to the selected definition for that run; they do not edit
 its YAML file.
+
+Review this project
+-------------------
+
+The repository includes ``examples/review-agent.yaml``, a named agent that
+exposes only the built-in read tool. From the repository root, run:
+
+.. code-block:: shell
+
+   just review-agent
+
+The recipe prints concise tool progress, reported per-call and cumulative token
+usage, and a final review preview to standard output; it does not print full
+tool observations or save a trajectory. Missing usage is shown as unknown, and
+cumulative totals are marked partial if a provider omits any counts. Totals sum
+reported usage across calls, so repeated context contributes to input tokens.
+Tool and token progress are each limited to 30 lines per run in plain output.
+The Textual view keeps the eight most recent tool calls visible while it updates
+activity, a bounded snippet of the latest model output, the total number of tool
+calls started, and elapsed time. The snippet is labeled ``reasoning`` when the
+provider reports reasoning, otherwise ``response``; it is a display preview and
+not a model-generated summary, and it may contain sensitive workspace data sent
+to the model. Failed calls count as started calls; model requests do not. The
+recent calls, total, and final snippet are printed after the view closes. Plain
+output does not stream model snippets. Exact tokens are shown only after the provider reports them; no
+streaming estimate is made. In the live view, Ctrl+C forcibly stops the supervised agent process and attempts
+to terminate its local subprocesses. Docker container removal is attempted in
+the background. The command exits with status 130. Changes and trajectories
+may be incomplete, remote requests can continue, and cleanup is best-effort;
+check for leftover containers or processes. For redirected output, non-POSIX
+systems, or ``--no-live``, the CLI uses plain output and standard terminal
+signal handling rather than this supervised stop. The final preview is limited to 40 lines
+and 4,000 characters and is marked when truncated. The reviewer prompt requests
+a short summary; the display limit is a preview, not a second model-generated
+summary. To preserve the full submission, configure ``--output`` before running. To choose different files or save a trajectory, run the
+underlying command directly:
+
+.. code-block:: shell
+
+   pipenv run workshop agent run --config examples/review-agent.yaml \\
+     --agent reviewer \\
+     --task 'Review workshop/agent/models.py and workshop/agent/default_agent.py for bugs. Report findings with file paths.' \\
+     --output /tmp/workshop-review.traj.json
+
+The example uses the ``hf-glm`` model ID, registered against Hugging Face's
+shared Inference Providers router (``https://router.huggingface.co/v1``) serving
+``zai-org/GLM-5.3-Flash``. Register an extra OpenAI model with ``llm`` using
+that base URL and your Hugging Face key, set ``supports_tools: true``, and pass
+``--model`` with another registered tool-capable model if you prefer. Hugging
+Face may route requests to a third-party provider, so review content, including
+read file contents, is sent there. The provider must be reachable and may
+charge for use. GLM-5.3-Flash defaults to maximum reasoning effort, so runs may
+be slower or costlier than smaller models.
+
+Run from the repository root because the example's ``cwd: .`` is relative to
+the process working directory, not the YAML file. The read tool cannot list
+files or inspect Git diffs, so provide explicit file paths in the task. It does
+not run tests or execute shell commands. Review the resulting findings yourself.
+
+Although Bash, edit, and MCP tools are not enabled in this example, the model
+can request any readable file within the workspace, including local secrets,
+and send its contents to the model provider. Prompt instructions are not a
+security boundary. For sensitive repositories, use a sanitized copy and a
+trusted model; if you save a trajectory, store it securely.
 
 Troubleshooting
 ---------------

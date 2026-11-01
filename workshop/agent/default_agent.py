@@ -221,6 +221,9 @@ class DefaultAgent:
         self.add_messages(message)
         return message
 
+    def on_action_start(self, action: dict) -> None:
+        """Hook called when an action begins execution."""
+
     def execute_actions(self, message: dict) -> list[dict]:
         """Execute actions in message, add observation messages, return them."""
         if message.get("extra", {}).get("native_final"):
@@ -237,6 +240,7 @@ class DefaultAgent:
         parallel_batch = []
 
         def execute(action):
+            self.on_action_start(action)
             if (
                 "tool" in action
                 and getattr(getattr(self.model, "config", None), "protocol", None)

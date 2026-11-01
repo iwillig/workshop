@@ -161,7 +161,10 @@ class DockerEnvironment:
             raise ValueError("DockerEnvironment requires an image")
 
     def _start_container(self):
-        container_name = f"workshop-agent-{uuid.uuid4().hex[:8]}"
+        container_name = (
+            getattr(self, "supervised_container_name", None)
+            or f"workshop-agent-{uuid.uuid4().hex[:8]}"
+        )
         cmd = [
             self.config.executable,
             "run",

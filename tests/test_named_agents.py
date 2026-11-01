@@ -5,6 +5,22 @@ from workshop.agent.cli import agent_commands
 from workshop.agent.config import build_agent, load_config
 
 
+def test_repository_review_example_uses_only_read_tool(monkeypatch):
+    from pathlib import Path
+    from types import SimpleNamespace
+
+    monkeypatch.setattr(
+        "workshop.agent.models.llm.get_model",
+        lambda _: SimpleNamespace(conversation=lambda: object()),
+    )
+    path = Path(__file__).resolve().parents[1] / "examples" / "review-agent.yaml"
+    agent = build_agent(load_config(path, agent_name="reviewer"))
+    assert [tool.name for tool in agent.builtin_tools.tools] == ["read"]
+    assert agent.mcp_runtime is None
+    assert agent.model.config.protocol == "native"
+    assert agent.model.config.model_name == "hf-glm"
+
+
 def test_named_agent_selection_and_relative_prompt(tmp_path):
     (tmp_path / "system.txt").write_text("Named system")
     config_path = tmp_path / "agents.yaml"

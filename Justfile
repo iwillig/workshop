@@ -38,6 +38,19 @@ docs:
     fi
     "$pipenv_bin" run sphinx-build -W -b html docs docs/_build/html
 
+# Run the read-only project review example; output goes to the terminal.
+review-agent:
+    #!/bin/sh
+    set -eu
+    pipenv_bin=pipenv
+    if command -v brew >/dev/null 2>&1; then
+        brew_pipenv="$(brew --prefix pipenv 2>/dev/null)/bin/pipenv"
+        if [ -x "$brew_pipenv" ]; then pipenv_bin="$brew_pipenv"; fi
+    fi
+    "$pipenv_bin" run workshop agent run --config examples/review-agent.yaml \
+        --agent reviewer \
+        --task 'Review workshop/agent/models.py and workshop/agent/default_agent.py for bugs. Report findings with file paths.'
+
 # Build a PDF from the single-page Sphinx documentation using Google Chrome on macOS.
 docs-pdf:
     pipenv run sphinx-build -W -b singlehtml docs docs/_build/singlehtml
