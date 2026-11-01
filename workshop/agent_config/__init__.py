@@ -24,27 +24,31 @@ DEFAULT_CONFIG_PATH = Path(__file__).parent / "configs" / "default.yaml"
 
 
 def resolve_class(name: str, registry: dict[str, type]) -> type:
-    """Resolve a registry name like "local", or a dotted import path, to a class."""
+    """Resolve a registry name or dotted import path to a class."""
     if name in registry:
         return registry[name]
     module_name, _, attribute = name.rpartition(".")
     if not module_name:
         raise ValueError(
-            f"Unknown class {name!r}; expected one of {sorted(registry)} or a dotted import path"
+            f"Unknown class {name!r}; expected one of "
+            f"{sorted(registry)} or a dotted import path"
         )
     return getattr(importlib.import_module(module_name), attribute)
 
 
 def load_config(path: Path | str, *, agent_name: str | None = None) -> dict:
-    """Load a YAML config file and normalize its component sections to dicts."""
+    """Load YAML config and normalize component sections to dicts."""
     config = yaml.safe_load(Path(path).read_text()) or {}
     if not isinstance(config, dict):
         raise ValueError(
-            f"Config file {path} must contain a mapping, got {type(config).__name__}"
+            f"Config file {path} must contain a mapping, "
+            f"got {type(config).__name__}"
         )
     if "agents" in config:
         if set(config) != {"agents"} or not isinstance(config["agents"], dict):
-            raise ValueError("Named configurations must contain only an agents mapping")
+            raise ValueError(
+                "Named configurations must contain only an agents mapping"
+            )
         if agent_name is None:
             raise ValueError("Select an agent with --agent")
         if agent_name not in config["agents"]:
@@ -62,7 +66,9 @@ def load_config(path: Path | str, *, agent_name: str | None = None) -> dict:
             "mcp_servers",
         }
         if unknown:
-            raise ValueError(f"Unknown agent fields: {', '.join(sorted(unknown))}")
+            raise ValueError(
+                f"Unknown agent fields: {', '.join(sorted(unknown))}"
+            )
         config = {
             key: value
             for key, value in selected.items()
@@ -99,7 +105,9 @@ def load_config(path: Path | str, *, agent_name: str | None = None) -> dict:
     agent = config["agent"]
     if "system_template_path" in agent:
         if "system_template" in agent:
-            raise ValueError("Set only one of system_template and system_template_path")
+            raise ValueError(
+                "Set only one of system_template and system_template_path"
+            )
         template_path = Path(agent.pop("system_template_path"))
         if not template_path.is_absolute():
             template_path = Path(path).resolve().parent / template_path
@@ -108,7 +116,7 @@ def load_config(path: Path | str, *, agent_name: str | None = None) -> dict:
 
 
 def build_agent(config: dict, **agent_overrides):
-    """Instantiate the model, environment, and agent described by a config dict.
+    """Instantiate the model, environment, and agent from a config dict.
 
     Keyword arguments override keys in the agent section.
     """
@@ -119,7 +127,10 @@ def build_agent(config: dict, **agent_overrides):
     from workshop.agent.models import LlmModel
 
     agent_classes = {"default": DefaultAgent, "interactive": InteractiveAgent}
-    environment_classes = {"local": LocalEnvironment, "docker": DockerEnvironment}
+    environment_classes = {
+        "local": LocalEnvironment,
+        "docker": DockerEnvironment,
+    }
     model_classes = {"llm": LlmModel}
     tool_config = config.get("tools")
     if tool_config is not None:
@@ -133,12 +144,23 @@ def build_agent(config: dict, **agent_overrides):
         if (config.get("model") or {}).get("protocol", "shell") != "native":
             raise ValueError("Tool selection requires model.protocol: native")
     model_config = dict(config.get("model") or {})
-    model_class = resolve_class(model_config.pop("model_class", "llm"), model_classes)
+    model_class = resolve_class(
+        model_config.pop("model_class", "llm"), model_classes
+    )
     model = model_class(**model_config)
+    logging = (config.get("workshop") or {}).get("llm", {}).get("logging", {})
+    if logging.get("enabled"):
+        configure = getattr(model, "configure_log_database", None)
+        if configure is None:
+            raise ValueError(
+                "Configured model does not support workshop LLM logging"
+            )
+        configure(logging["database"])
 
     environment_config = dict(config.get("environment") or {})
     environment_class = resolve_class(
-        environment_config.pop("environment_class", "local"), environment_classes
+        environment_config.pop("environment_class", "local"),
+        environment_classes,
     )
     environment = environment_class(**environment_config)
 
@@ -149,7 +171,8 @@ def build_agent(config: dict, **agent_overrides):
     if getattr(model.config, "protocol", None) == "native":
         agent_config.setdefault(
             "system_template",
-            "You are a helpful coding assistant. Use the available tools to complete the task. When finished, respond with the result.",
+            "You are a helpful coding assistant. Use the available tools "
+            "to complete the task. When finished, respond with the result.",
         )
         agent_config.setdefault("instance_template", "Task: {{ task }}")
     agent = agent_class(model, environment, **agent_config | agent_overrides)
@@ -158,10 +181,13 @@ def build_agent(config: dict, **agent_overrides):
         unavailable = set(tool_config) - available
         if unavailable:
             raise ValueError(
-                f"Tools unavailable in this environment: {', '.join(sorted(unavailable))}"
+                "Tools unavailable in this environment: "
+                f"{', '.join(sorted(unavailable))}"
             )
         agent.builtin_tools.tools = [
-            tool for tool in agent.builtin_tools.tools if tool.name in tool_config
+            tool
+            for tool in agent.builtin_tools.tools
+            if tool.name in tool_config
         ]
     servers = config.get("mcp_servers") or {}
     if servers:

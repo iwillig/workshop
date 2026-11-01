@@ -35,8 +35,13 @@ def test_status_and_diff(repository):
     (path / "new.txt").write_text("new\n")
     result = invoke("status", "--repo", root)
     assert result.exit_code == 0, result.output
-    changes = {item["path"]: item for item in json.loads(result.output)["changes"]}
-    assert (changes["file.txt"]["index"], changes["file.txt"]["worktree"]) == ("M", "M")
+    changes = {
+        item["path"]: item for item in json.loads(result.output)["changes"]
+    }
+    assert (changes["file.txt"]["index"], changes["file.txt"]["worktree"]) == (
+        "M",
+        "M",
+    )
     assert changes["new.txt"]["index"] == "?"
     for flags, expected in [((), "+unstaged"), (("--staged",), "+staged")]:
         result = invoke("diff", "--repo", root, *flags)

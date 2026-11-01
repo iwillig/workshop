@@ -3,7 +3,12 @@
 import json
 
 import click
-from git import GitCommandError, InvalidGitRepositoryError, NoSuchPathError, Repo
+from git import (
+    GitCommandError,
+    InvalidGitRepositoryError,
+    NoSuchPathError,
+    Repo,
+)
 
 
 def open_repo(path):
@@ -43,13 +48,19 @@ def status(path):
     """Show branch and working-tree changes as JSON."""
     try:
         with open_repo(path) as repo:
-            raw = repo.git.status("--porcelain=v1", "-z", "--untracked-files=all")
+            raw = repo.git.status(
+                "--porcelain=v1", "-z", "--untracked-files=all"
+            )
             parts = raw.split("\0") if raw else []
             changes = []
             i = 0
             while i < len(parts) and parts[i]:
                 entry = parts[i]
-                change = {"index": entry[0], "worktree": entry[1], "path": entry[3:]}
+                change = {
+                    "index": entry[0],
+                    "worktree": entry[1],
+                    "path": entry[3:],
+                }
                 i += 1
                 if "R" in entry[:2] or "C" in entry[:2]:
                     change["original_path"] = parts[i]
@@ -57,10 +68,16 @@ def status(path):
                 changes.append(change)
             branch = None if repo.head.is_detached else repo.active_branch.name
             output(
-                {"root": repo.working_tree_dir, "branch": branch, "changes": changes}
+                {
+                    "root": repo.working_tree_dir,
+                    "branch": branch,
+                    "changes": changes,
+                }
             )
     except GitCommandError as exc:
-        raise click.ClickException(f"Git status failed: {exc.stderr.strip()}") from exc
+        raise click.ClickException(
+            f"Git status failed: {exc.stderr.strip()}"
+        ) from exc
 
 
 @git_commands.command("diff")
@@ -69,7 +86,7 @@ def status(path):
     "--staged", is_flag=True, help="Show staged rather than unstaged changes."
 )
 def diff(path, staged):
-    """Show a staged or unstaged patch as JSON; untracked files are excluded."""
+    """Show a staged or unstaged patch as JSON, excluding untracked files."""
     try:
         with open_repo(path) as repo:
             args = ["--no-ext-diff", "--no-textconv"]
@@ -78,12 +95,16 @@ def diff(path, staged):
             args.append("--")
             output({"staged": staged, "patch": repo.git.diff(*args)})
     except GitCommandError as exc:
-        raise click.ClickException(f"Git diff failed: {exc.stderr.strip()}") from exc
+        raise click.ClickException(
+            f"Git diff failed: {exc.stderr.strip()}"
+        ) from exc
 
 
 @git_commands.command("log")
 @repository_option
-@click.option("--limit", type=click.IntRange(min=1), default=10, show_default=True)
+@click.option(
+    "--limit", type=click.IntRange(min=1), default=10, show_default=True
+)
 def log(path, limit):
     """Show recent commits reachable from HEAD as JSON."""
     try:
@@ -103,4 +124,6 @@ def log(path, limit):
                 ]
             )
     except GitCommandError as exc:
-        raise click.ClickException(f"Git log failed: {exc.stderr.strip()}") from exc
+        raise click.ClickException(
+            f"Git log failed: {exc.stderr.strip()}"
+        ) from exc

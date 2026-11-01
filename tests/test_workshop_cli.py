@@ -30,16 +30,22 @@ def test_commands_through_workshop(monkeypatch):
 
     monkeypatch.setattr(research, "tasks_api", lambda: API())
     runner = CliRunner()
-    result = runner.invoke(cli, ["research-context", "asana", "list-tasks", "123"])
+    result = runner.invoke(
+        cli, ["research-context", "asana", "list-tasks", "123"]
+    )
     assert result.exit_code == 0
     assert json.loads(result.output) == [{"gid": "42"}]
-    result = runner.invoke(cli, ["research-context", "asana", "get-task", "42"])
+    result = runner.invoke(
+        cli, ["research-context", "asana", "get-task", "42"]
+    )
     assert result.exit_code == 0
     assert json.loads(result.output) == {"gid": "42"}
 
 
 def test_missing_token_through_workshop(monkeypatch):
     monkeypatch.delenv("ASANA_ACCESS_TOKEN", raising=False)
-    result = CliRunner().invoke(cli, ["research-context", "asana", "get-task", "42"])
+    result = CliRunner().invoke(
+        cli, ["research-context", "asana", "get-task", "42"]
+    )
     assert result.exit_code != 0
     assert "ASANA_ACCESS_TOKEN" in result.output

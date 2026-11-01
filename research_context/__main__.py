@@ -17,7 +17,9 @@ from research_context.notion import notion_commands
 def tasks_api():
     token = os.environ.get("ASANA_ACCESS_TOKEN", "").strip()
     if not token:
-        raise click.ClickException("Set ASANA_ACCESS_TOKEN to an Asana access token.")
+        raise click.ClickException(
+            "Set ASANA_ACCESS_TOKEN to an Asana access token."
+        )
     configuration = asana.Configuration()
     configuration.access_token = token
     return asana.TasksApi(asana.ApiClient(configuration))
@@ -40,7 +42,9 @@ def list_tasks(project_gid):
     """List tasks in the Asana project PROJECT_GID as JSON."""
     try:
         tasks = tasks_api().get_tasks_for_project(
-            project_gid, {"opt_fields": "gid,name,completed"}, _request_timeout=30
+            project_gid,
+            {"opt_fields": "gid,name,completed"},
+            _request_timeout=30,
         )
         click.echo(json.dumps(list(tasks), indent=2))
     except ApiException as exc:
@@ -59,7 +63,10 @@ def get_task(task_gid):
         result = tasks_api().get_task(
             task_gid,
             {
-                "opt_fields": "gid,name,notes,completed,due_on,assignee.name,permalink_url"
+                "opt_fields": (
+                    "gid,name,notes,completed,due_on,assignee.name,"
+                    "permalink_url"
+                )
             },
             full_payload=True,
             _request_timeout=30,

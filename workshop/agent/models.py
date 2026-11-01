@@ -7,8 +7,11 @@ guard raises if the two ever drift apart (e.g. a model instance reused across
 runs without reset()).
 """
 
+import os
 import re
+import stat
 import time
+from pathlib import Path
 from dataclasses import dataclass, field
 from typing import Any
 
@@ -32,7 +35,7 @@ def parse_regex_actions(
     format_error_template: str,
     template_kwargs: dict | None = None,
 ) -> list[dict]:
-    """Parse actions from text content using regex. Raises FormatError if not exactly one action."""
+    """Parse exactly one action from text, or raise FormatError."""
     actions = [a.strip() for a in re.findall(action_regex, content, re.DOTALL)]
     if len(actions) != 1:
         error_msg = f"Expected exactly 1 action, found {len(actions)}."
@@ -41,7 +44,9 @@ def parse_regex_actions(
                 "role": "user",
                 "content": Template(
                     format_error_template, undefined=StrictUndefined
-                ).render(actions=actions, error=error_msg, **(template_kwargs or {})),
+                ).render(
+                    actions=actions, error=error_msg, **(template_kwargs or {})
+                ),
                 "extra": {
                     "interrupt_type": "FormatError",
                     "n_actions": len(actions),
@@ -53,14 +58,17 @@ def parse_regex_actions(
 
 
 def format_observation_messages(
-    outputs: list[dict], *, observation_template: str, template_vars: dict | None = None
+    outputs: list[dict],
+    *,
+    observation_template: str,
+    template_vars: dict | None = None,
 ) -> list[dict]:
     """Format execution outputs into user observation messages."""
     results = []
     for output in outputs:
-        content = Template(observation_template, undefined=StrictUndefined).render(
-            output=output, **(template_vars or {})
-        )
+        content = Template(
+            observation_template, undefined=StrictUndefined
+        ).render(output=output, **(template_vars or {}))
         results.append(
             {
                 "role": "user",
@@ -80,7 +88,7 @@ def format_observation_messages(
 def extract_prompt(
     messages: list[dict], n_previous_responses: int
 ) -> tuple[str | None, str]:
-    """Return (system, prompt) for the next llm call from the agent's message list.
+    """Return (system, prompt) for the next llm call from the messages.
 
     The prompt is every user message appended since the last assistant reply;
     the system message is sent only with the first call of a conversation.
@@ -88,7 +96,8 @@ def extract_prompt(
     n_assistant = sum(1 for m in messages if m.get("role") == "assistant")
     if n_assistant != n_previous_responses:
         raise RuntimeError(
-            "LlmModel is stateful: the message history no longer matches its conversation. "
+            "LlmModel is stateful: the message history no longer matches "
+            "its conversation. "
             "Call reset() (or create a fresh model) before starting a new run."
         )
     new_user_contents = []
@@ -101,7 +110,11 @@ def extract_prompt(
     if not new_user_contents:
         raise ValueError("No new user message to send to the model.")
     system = None
-    if n_previous_responses == 0 and messages and messages[0].get("role") == "system":
+    if (
+        n_previous_responses == 0
+        and messages
+        and messages[0].get("role") == "system"
+    ):
         system = messages[0]["content"]
     return system, "\n\n".join(reversed(new_user_contents))
 
@@ -116,7 +129,7 @@ class LlmModelConfig:
     """Options passed to llm's prompt() call, e.g. temperature."""
     input_cost_per_mtok: float = 0.0
     output_cost_per_mtok: float = 0.0
-    """Dollar cost per million tokens; llm has no pricing tables, so cost is 0 unless set."""
+    """Dollar cost per million tokens; defaults to 0 unless configured."""
     action_regex: str = DEFAULT_ACTION_REGEX
     format_error_template: str = DEFAULT_FORMAT_ERROR_TEMPLATE
     observation_template: str = DEFAULT_OBSERVATION_TEMPLATE
@@ -127,19 +140,54 @@ class LlmModelConfig:
 class LlmModel:
     def __init__(self, *, config_class: type = LlmModelConfig, **kwargs):
         self.config = config_class(**kwargs)
+        if (
+            type(self.config.retry_attempts) is not int
+            or self.config.retry_attempts < 1
+        ):
+            raise ValueError("retry_attempts must be a positive integer")
         if self.config.protocol not in {"shell", "native"}:
             raise ValueError("model protocol must be 'shell' or 'native'")
         self.native_tools = []
         self.stream_callback = None
+        self._log_database = None
         self._model = llm.get_model(self.config.model_name)
         self.reset()
+
+    def configure_log_database(self, path):
+        """Enable explicit logging of completed model responses."""
+        self._log_database = Path(path)
+
+    def _log_response(self, response):
+        import sqlite_utils
+
+        path = self._log_database
+        path.parent.mkdir(mode=0o700, parents=True, exist_ok=True)
+        flags = os.O_CREAT | os.O_RDWR | getattr(os, "O_NOFOLLOW", 0)
+        fd = os.open(path, flags, 0o600)
+        try:
+            info = os.fstat(fd)
+            if not stat.S_ISREG(info.st_mode) or (
+                os.name == "posix" and info.st_mode & 0o077
+            ):
+                raise PermissionError(
+                    f"Log database must be a private regular file: {path}"
+                )
+        finally:
+            os.close(fd)
+        db = sqlite_utils.Database(path)
+        try:
+            response.log_to_db(db)
+        finally:
+            db.close()
 
     def reset(self):
         """Start a fresh conversation, e.g. for a new agent run."""
         self._conversation = self._model.conversation()
 
     def query(self, messages: list[dict], **kwargs) -> dict:
-        system, prompt = extract_prompt(messages, len(self._conversation.responses))
+        system, prompt = extract_prompt(
+            messages, len(self._conversation.responses)
+        )
         options = self.config.model_options | kwargs
         if self.config.protocol == "native":
             options = options | {"tools": self.native_tools}
@@ -158,13 +206,17 @@ class LlmModel:
             if attempt:
                 time.sleep(self.config.retry_wait_seconds * attempt)
             try:
-                response = self._conversation.prompt(prompt, system=system, **options)
+                response = self._conversation.prompt(
+                    prompt, system=system, **options
+                )
                 content = self._read_response(response)
                 break
             except Exception as e:
                 last_error = e
         else:
             raise last_error  # type: ignore[misc]
+        if self._log_database is not None:
+            self._log_response(response)
         cost_extra = self._cost(response)
         if self.config.protocol == "native":
             actions = [
@@ -192,19 +244,25 @@ class LlmModel:
                 format_error_template=self.config.format_error_template,
             )
         except FormatError as e:
-            # The call was billed before parsing failed; persist cost and response on the error.
+            # Parsing failed after billing; persist cost and response.
             e.messages[0]["extra"].update(cost_extra)
             e.messages[0]["extra"]["response"] = content
             raise
         return {
             "role": "assistant",
             "content": content,
-            "extra": {"actions": actions, "timestamp": time.time(), **cost_extra},
+            "extra": {
+                "actions": actions,
+                "timestamp": time.time(),
+                **cost_extra,
+            },
         }
 
     def _read_response(self, response):
-        """Stream bounded display snippets without changing the canonical response."""
-        if self.stream_callback is None or not hasattr(response, "stream_events"):
+        """Stream bounded snippets without changing the canonical response."""
+        if self.stream_callback is None or not hasattr(
+            response, "stream_events"
+        ):
             return response.text()
         self.stream_callback("reset", "")
         reasoning = ""
@@ -213,7 +271,9 @@ class LlmModel:
         for event in response.stream_events():
             if event.type not in {"reasoning", "text"} or not event.chunk:
                 continue
-            chunk = "".join(c for c in event.chunk if c in "\n\t" or ord(c) >= 32)
+            chunk = "".join(
+                c for c in event.chunk if c in "\n\t" or ord(c) >= 32
+            )
             if event.type == "reasoning":
                 reasoning = (reasoning + chunk)[-1000:]
             else:
@@ -247,7 +307,10 @@ class LlmModel:
         return dict(kwargs)
 
     def format_observation_messages(
-        self, message: dict, outputs: list[dict], template_vars: dict | None = None
+        self,
+        message: dict,
+        outputs: list[dict],
+        template_vars: dict | None = None,
     ) -> list[dict]:
         if self.config.protocol == "native":
             actions = message.get("extra", {}).get("actions", [])
@@ -260,7 +323,8 @@ class LlmModel:
                             "name": action["tool"],
                             "output": (
                                 f"Exit code: {output.get('returncode')}\n"
-                                f"{output.get('exception_info', '')}\n{output.get('output', '')}"
+                                f"{output.get('exception_info', '')}\n"
+                                f"{output.get('output', '')}"
                                 if action["tool"] == "bash"
                                 else output.get("output", "")
                             ),
@@ -284,7 +348,10 @@ class LlmModel:
             "info": {
                 "config": {
                     "model": config_as_dict(self.config),
-                    "model_type": f"{self.__class__.__module__}.{self.__class__.__name__}",
+                    "model_type": (
+                        f"{self.__class__.__module__}."
+                        f"{self.__class__.__name__}"
+                    ),
                 },
             }
         }

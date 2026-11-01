@@ -18,7 +18,8 @@ def test_config_import_does_not_load_agent_runtime():
         [
             sys.executable,
             "-c",
-            "import workshop.agent_config, sys; assert 'workshop.agent' not in sys.modules",
+            "import workshop.agent_config, sys; "
+            "assert 'workshop.agent' not in sys.modules",
         ],
         capture_output=True,
         text=True,
@@ -31,7 +32,8 @@ def test_agent_runtime_does_not_load_config_package():
         [
             sys.executable,
             "-c",
-            "import workshop.agent, sys; assert 'workshop.agent_config' not in sys.modules",
+            "import workshop.agent, sys; "
+            "assert 'workshop.agent_config' not in sys.modules",
         ],
         capture_output=True,
         text=True,

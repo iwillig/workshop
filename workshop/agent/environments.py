@@ -10,6 +10,7 @@ import platform
 import shlex
 import signal
 import subprocess
+import threading
 import uuid
 from dataclasses import dataclass, field
 from typing import Any
@@ -23,13 +24,20 @@ SUBMIT_SENTINEL = "COMPLETE_TASK_AND_SUBMIT_FINAL_OUTPUT"
 def check_finished(output: dict):
     """Raise Submitted if the output indicates task completion."""
     lines = output.get("output", "").lstrip().splitlines(keepends=True)
-    if lines and lines[0].strip() == SUBMIT_SENTINEL and output["returncode"] == 0:
+    if (
+        lines
+        and lines[0].strip() == SUBMIT_SENTINEL
+        and output["returncode"] == 0
+    ):
         submission = "".join(lines[1:])
         raise Submitted(
             {
                 "role": "exit",
                 "content": submission,
-                "extra": {"exit_status": "Submitted", "submission": submission},
+                "extra": {
+                    "exit_status": "Submitted",
+                    "submission": submission,
+                },
             }
         )
 
@@ -44,7 +52,9 @@ def _exception_output(e: Exception) -> dict[str, Any]:
     return {
         "output": raw_output,
         "returncode": -1,
-        "exception_info": f"An error occurred while executing the command: {e}",
+        "exception_info": (
+            f"An error occurred while executing the command: {e}"
+        ),
         "extra": {"exception_type": type(e).__name__, "exception": str(e)},
     }
 
@@ -59,7 +69,9 @@ class LocalEnvironmentConfig:
 class LocalEnvironment:
     """Executes bash commands directly on the local machine. No isolation."""
 
-    def __init__(self, *, config_class: type = LocalEnvironmentConfig, **kwargs):
+    def __init__(
+        self, *, config_class: type = LocalEnvironmentConfig, **kwargs
+    ):
         self.config = config_class(**kwargs)
 
     def execute(
@@ -97,19 +109,25 @@ class LocalEnvironment:
             "info": {
                 "config": {
                     "environment": config_as_dict(self.config),
-                    "environment_type": f"{self.__class__.__module__}.{self.__class__.__name__}",
+                    "environment_type": (
+                        f"{self.__class__.__module__}."
+                        f"{self.__class__.__name__}"
+                    ),
                 }
             }
         }
 
 
 def _run(
-    command: str, cwd: str, env: dict[str, str], timeout: int
+    command: str | list[str],
+    cwd: str | None,
+    env: dict[str, str] | None,
+    timeout: int,
 ) -> subprocess.CompletedProcess[str]:
-    """Like subprocess.run, but kills the whole process group on timeout so no children are orphaned."""
+    """Run a command, killing its process group on timeout."""
     process = subprocess.Popen(
         command,
-        shell=True,
+        shell=isinstance(command, str),
         text=True,
         cwd=cwd,
         env=env,
@@ -119,13 +137,41 @@ def _run(
         stderr=subprocess.STDOUT,
         start_new_session=os.name == "posix",
     )
+    chunks = []
+    size = 0
+    truncated = False
+
+    def drain():
+        nonlocal size, truncated
+        while chunk := process.stdout.read(8192):
+            remaining = 50000 - size
+            if remaining > 0:
+                chunks.append(chunk[:remaining])
+                size += min(len(chunk), remaining)
+            if len(chunk) > remaining:
+                truncated = True
+
+    reader = threading.Thread(target=drain, daemon=True)
+    reader.start()
+    timed_out = False
     try:
-        stdout, _ = process.communicate(timeout=timeout)
+        process.wait(timeout=timeout)
     except subprocess.TimeoutExpired:
-        os.killpg(process.pid, signal.SIGKILL) if os.name == "posix" else process.kill()
-        stdout, _ = process.communicate()
+        timed_out = True
+        os.killpg(
+            process.pid, signal.SIGKILL
+        ) if os.name == "posix" else process.kill()
+        process.wait()
+    reader.join(timeout=1 if timed_out else timeout)
+    incomplete = reader.is_alive()
+    stdout = "".join(chunks) + ("\n[output truncated]" if truncated else "")
+    if incomplete:
+        stdout += "\n[output incomplete: pipe still open]"
+    if timed_out:
         raise subprocess.TimeoutExpired(command, timeout, output=stdout)
-    return subprocess.CompletedProcess(command, process.returncode, stdout=stdout)
+    return subprocess.CompletedProcess(
+        command, process.returncode, stdout=stdout
+    )
 
 
 @dataclass
@@ -134,7 +180,7 @@ class DockerEnvironmentConfig:
     cwd: str = "/"
     env: dict[str, str] = field(default_factory=dict)
     forward_env: list[str] = field(default_factory=list)
-    """Environment variables to forward to the container, if set on the host."""
+    """Host environment variables to forward to the container, if set."""
     timeout: int = 30
     executable: str = os.getenv("WORKSHOP_DOCKER_EXECUTABLE", "docker")
     run_args: list[str] = field(default_factory=lambda: ["--rm"])
@@ -145,7 +191,7 @@ class DockerEnvironmentConfig:
 
 
 class DockerEnvironment:
-    """Executes bash commands in a Docker (or Podman) container via docker exec."""
+    """Execute bash commands in a Docker or Podman container."""
 
     def __init__(
         self,
@@ -178,7 +224,9 @@ class DockerEnvironment:
             "sleep",
             self.config.container_timeout,
         ]
-        self.logger.debug("Starting container with command: %s", shlex.join(cmd))
+        self.logger.debug(
+            "Starting container with command: %s", shlex.join(cmd)
+        )
         result = subprocess.run(
             cmd,
             capture_output=True,
@@ -188,7 +236,9 @@ class DockerEnvironment:
         )
         self.container_id = result.stdout.strip()
         self.logger.info(
-            "Started container %s with ID %s", container_name, self.container_id
+            "Started container %s with ID %s",
+            container_name,
+            self.container_id,
         )
 
     def execute(
@@ -206,15 +256,7 @@ class DockerEnvironment:
             cmd.extend(["-e", f"{key}={value}"])
         cmd.extend([self.container_id, *self.config.interpreter, command])
         try:
-            result = subprocess.run(
-                cmd,
-                text=True,
-                timeout=timeout or self.config.timeout,
-                encoding="utf-8",
-                errors="replace",
-                stdout=subprocess.PIPE,
-                stderr=subprocess.STDOUT,
-            )
+            result = _run(cmd, None, None, timeout or self.config.timeout)
             output = {
                 "output": result.stdout,
                 "returncode": result.returncode,
@@ -235,7 +277,10 @@ class DockerEnvironment:
             "info": {
                 "config": {
                     "environment": config_as_dict(self.config),
-                    "environment_type": f"{self.__class__.__module__}.{self.__class__.__name__}",
+                    "environment_type": (
+                        f"{self.__class__.__module__}."
+                        f"{self.__class__.__name__}"
+                    ),
                 }
             }
         }

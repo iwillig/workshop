@@ -32,7 +32,9 @@ class GitHubAPI:
         items = []
         page = 1
         while True:
-            batch = self.get(path, {**(params or {}), "per_page": 100, "page": page})
+            batch = self.get(
+                path, {**(params or {}), "per_page": 100, "page": page}
+            )
             items.extend(batch)
             if len(batch) < 100:
                 return items
@@ -123,7 +125,11 @@ def get_issue(repository, number):
 def list_prs(repository, state):
     """List pull requests in OWNER/REPO as JSON."""
     path = repository_path(repository)
-    output(github_request(lambda api: api.list_all(f"{path}/pulls", {"state": state})))
+    output(
+        github_request(
+            lambda api: api.list_all(f"{path}/pulls", {"state": state})
+        )
+    )
 
 
 @github_commands.command("search-prs")
@@ -138,10 +144,13 @@ def search_prs(query):
         incomplete_results = False
         while True:
             result = api.get(
-                "/search/issues", {"q": f"is:pr {query}", "per_page": 100, "page": page}
+                "/search/issues",
+                {"q": f"is:pr {query}", "per_page": 100, "page": page},
             )
             total_count = result["total_count"]
-            incomplete_results = incomplete_results or result["incomplete_results"]
+            incomplete_results = (
+                incomplete_results or result["incomplete_results"]
+            )
             batch = result["items"]
             items.extend(batch)
             if len(batch) < 100 or len(items) >= min(total_count, 1000):
@@ -161,7 +170,11 @@ def search_prs(query):
 def pr_files(repository, number):
     """List changed files and available patches for a pull request as JSON."""
     path = repository_path(repository)
-    output(github_request(lambda api: api.list_all(f"{path}/pulls/{number}/files")))
+    output(
+        github_request(
+            lambda api: api.list_all(f"{path}/pulls/{number}/files")
+        )
+    )
 
 
 @github_commands.command("pr-commits")
@@ -170,7 +183,11 @@ def pr_files(repository, number):
 def pr_commits(repository, number):
     """List commits in a pull request as JSON."""
     path = repository_path(repository)
-    output(github_request(lambda api: api.list_all(f"{path}/pulls/{number}/commits")))
+    output(
+        github_request(
+            lambda api: api.list_all(f"{path}/pulls/{number}/commits")
+        )
+    )
 
 
 @github_commands.command("get-pr")

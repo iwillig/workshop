@@ -2,7 +2,9 @@ from workshop.agent.interactive import InteractiveAgent
 from workshop.agent.default_agent import DefaultAgent
 
 
-def test_interactive_output_is_concise_but_keeps_full_observation(monkeypatch, capsys):
+def test_interactive_output_is_concise_but_keeps_full_observation(
+    monkeypatch, capsys
+):
     class Model:
         def get_template_vars(self):
             return {}
@@ -23,7 +25,9 @@ def test_interactive_output_is_concise_but_keeps_full_observation(monkeypatch, c
 
     message = {
         "content": "Reading the file",
-        "extra": {"actions": [{"tool": "read", "arguments": {"path": "a.py"}}]},
+        "extra": {
+            "actions": [{"tool": "read", "arguments": {"path": "a.py"}}]
+        },
     }
     monkeypatch.setattr(DefaultAgent, "query", lambda self: message)
     agent = InteractiveAgent(Model(), Environment())

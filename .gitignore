@@ -1,4 +1,5 @@
 .env.local
+.workshop/
 .venv
 docs/_build/
 *.egg-info/

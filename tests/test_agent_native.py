@@ -61,7 +61,9 @@ def echo(text: str) -> str:
 if __name__ == "__main__":
     server.run(transport="stdio")
 """)
-    monkeypatch.setattr("workshop.agent.models.llm.get_model", lambda _: Backend())
+    monkeypatch.setattr(
+        "workshop.agent.models.llm.get_model", lambda _: Backend()
+    )
     agent = build_agent(
         {
             "agent": {
@@ -83,8 +85,13 @@ if __name__ == "__main__":
     result = agent.run("task")
     assert result["exit_status"] == "Submitted"
     assert result["submission"] == "done"
-    assert "hi" in agent.model._conversation.requests[1][1]["tool_results"][0].output
-    names = {tool.name for tool in agent.model._conversation.requests[0][1]["tools"]}
+    assert (
+        "hi"
+        in agent.model._conversation.requests[1][1]["tool_results"][0].output
+    )
+    names = {
+        tool.name for tool in agent.model._conversation.requests[0][1]["tools"]
+    }
     assert {"read", "edit", "bash", "mcp__demo__echo"} <= names
     assert agent.run("second task")["exit_status"] == "Submitted"
 
@@ -109,7 +116,9 @@ def test_native_agent_executes_builtin_read_without_mcp(tmp_path, monkeypatch):
         def conversation(self):
             return ReadConversation()
 
-    monkeypatch.setattr("workshop.agent.models.llm.get_model", lambda _: ReadBackend())
+    monkeypatch.setattr(
+        "workshop.agent.models.llm.get_model", lambda _: ReadBackend()
+    )
     agent = build_agent(
         {
             "agent": {"agent_class": "default"},
@@ -119,12 +128,15 @@ def test_native_agent_executes_builtin_read_without_mcp(tmp_path, monkeypatch):
     )
     assert agent.run("read file")["exit_status"] == "Submitted"
     assert (
-        agent.model._conversation.requests[1][1]["tool_results"][0].output == "contents"
+        agent.model._conversation.requests[1][1]["tool_results"][0].output
+        == "contents"
     )
 
 
 def test_native_model_passes_tool_calls_and_results(monkeypatch):
-    monkeypatch.setattr("workshop.agent.models.llm.get_model", lambda _: Backend())
+    monkeypatch.setattr(
+        "workshop.agent.models.llm.get_model", lambda _: Backend()
+    )
     model = LlmModel(protocol="native", retry_attempts=1)
     model.native_tools = [
         llm.Tool(name="mcp__demo__echo", input_schema={"type": "object"})
@@ -141,7 +153,10 @@ def test_native_model_passes_tool_calls_and_results(monkeypatch):
         "tool_call_id": "call-1",
     }
     outputs = [{"output": "hi", "returncode": 0, "exception_info": ""}]
-    messages += [response, *model.format_observation_messages(response, outputs)]
+    messages += [
+        response,
+        *model.format_observation_messages(response, outputs),
+    ]
     final = model.query(messages)
     assert final["extra"]["native_final"] is True
     assert model._conversation.requests[0][1]["tools"] == model.native_tools

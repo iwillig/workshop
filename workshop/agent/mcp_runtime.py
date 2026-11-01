@@ -49,7 +49,9 @@ class MCPRuntime:
         self._stop = asyncio.Event()
         async with AsyncExitStack() as stack:
             for name, config in self.servers.items():
-                connection = await stack.enter_async_context(MCPConnection(config))
+                connection = await stack.enter_async_context(
+                    MCPConnection(config)
+                )
                 adapter = MCPToolAdapter(name, connection)
                 tools = await adapter.discover()
                 self.tools.extend(tools)
@@ -60,7 +62,8 @@ class MCPRuntime:
     def execute(self, action):
         name = action.get("tool", "")
         adapter = next(
-            (a for a in self.adapters.values() if name.startswith(a.prefix)), None
+            (a for a in self.adapters.values() if name.startswith(a.prefix)),
+            None,
         )
         if adapter is None:
             return {

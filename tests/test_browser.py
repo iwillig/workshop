@@ -29,7 +29,11 @@ def test_screenshot(monkeypatch):
         cli, ["browser", "screenshot", "https://example.com", "capture.png"]
     )
     assert result.exit_code == 0, result.output
-    assert calls == [("get", "https://example.com"), ("save", "capture.png"), ("quit",)]
+    assert calls == [
+        ("get", "https://example.com"),
+        ("save", "capture.png"),
+        ("quit",),
+    ]
 
 
 def test_screenshot_closes_browser_on_failure(monkeypatch):

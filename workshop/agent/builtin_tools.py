@@ -14,7 +14,10 @@ class BuiltinTools:
         self.tools = [
             llm.Tool(
                 name="read",
-                description="Read a UTF-8 file in the workspace with optional line range.",
+                description=(
+                    "Read a UTF-8 file in the workspace with optional "
+                    "line range."
+                ),
                 input_schema={
                     "type": "object",
                     "properties": {
@@ -28,7 +31,9 @@ class BuiltinTools:
             ),
             llm.Tool(
                 name="edit",
-                description="Replace one exact, unique text match in a workspace file.",
+                description=(
+                    "Replace one exact, unique text match in a workspace file."
+                ),
                 input_schema={
                     "type": "object",
                     "properties": {
@@ -42,7 +47,9 @@ class BuiltinTools:
             ),
             llm.Tool(
                 name="bash",
-                description="Run a shell command in the execution environment.",
+                description=(
+                    "Run a shell command in the execution environment."
+                ),
                 input_schema={
                     "type": "object",
                     "properties": {"command": {"type": "string"}},
@@ -56,8 +63,12 @@ class BuiltinTools:
 
     def _path(self, value):
         if not isinstance(self.environment, LocalEnvironment):
-            raise ValueError("read and edit currently require the local environment")
-        root = Path(self.environment.config.cwd or os.getcwd()).resolve(strict=True)
+            raise ValueError(
+                "read and edit currently require the local environment"
+            )
+        root = Path(self.environment.config.cwd or os.getcwd()).resolve(
+            strict=True
+        )
         path = (root / value).resolve(strict=True)
         if not path.is_relative_to(root):
             raise ValueError("Path is outside the workspace")
@@ -72,7 +83,9 @@ class BuiltinTools:
             if not isinstance(args, dict):
                 raise ValueError("Arguments must be an object")
             if name == "bash":
-                if set(args) != {"command"} or not isinstance(args["command"], str):
+                if set(args) != {"command"} or not isinstance(
+                    args["command"], str
+                ):
                     raise ValueError("bash requires a command string")
                 return self.environment.execute({"command": args["command"]})
             if name == "read":
@@ -90,11 +103,30 @@ class BuiltinTools:
                     or offset < 1
                     or limit < 1
                 ):
-                    raise ValueError("offset and limit must be positive integers")
-                text = self._path(args["path"]).read_text(encoding="utf-8")
-                output = "\n".join(text.splitlines()[offset - 1 : offset - 1 + limit])
-                if len(output) > 50000:
-                    output = output[:50000] + "\n[output truncated]"
+                    raise ValueError(
+                        "offset and limit must be positive integers"
+                    )
+                parts = []
+                size = 0
+                line = 1
+                truncated = False
+                with self._path(args["path"]).open(encoding="utf-8") as file:
+                    while line < offset + limit:
+                        chunk = file.readline(8192)
+                        if not chunk:
+                            break
+                        if line >= offset:
+                            remaining = 50001 - size
+                            parts.append(chunk[:remaining])
+                            size += min(len(chunk), remaining)
+                            if size > 50000:
+                                truncated = True
+                                break
+                        if chunk.endswith("\n"):
+                            line += 1
+                output = "\n".join("".join(parts)[:50000].splitlines())
+                if truncated:
+                    output += "\n[output truncated]"
             elif name == "edit":
                 if (
                     set(args) != {"path", "old_text", "new_text"}
@@ -102,7 +134,8 @@ class BuiltinTools:
                     or not args["old_text"]
                 ):
                     raise ValueError(
-                        "edit requires path, nonempty old_text, and new_text strings"
+                        "edit requires path, nonempty old_text, "
+                        "and new_text strings"
                     )
                 path = self._path(args["path"])
                 with path.open("r", encoding="utf-8", newline="") as file:
@@ -110,7 +143,9 @@ class BuiltinTools:
                 if text.count(args["old_text"]) != 1:
                     raise ValueError("old_text must match exactly once")
                 with path.open("w", encoding="utf-8", newline="") as file:
-                    file.write(text.replace(args["old_text"], args["new_text"], 1))
+                    file.write(
+                        text.replace(args["old_text"], args["new_text"], 1)
+                    )
                 output = "Edit applied."
             else:
                 raise ValueError(f"Unknown built-in tool: {name}")

@@ -15,7 +15,9 @@ class StreamingResponse:
         yield from self.events
 
     def text(self):
-        return "".join(event.chunk for event in self.events if event.type == "text")
+        return "".join(
+            event.chunk for event in self.events if event.type == "text"
+        )
 
     def tool_calls(self):
         return []
@@ -96,7 +98,9 @@ def test_interactive_agent_forwards_stream_to_progress(monkeypatch):
 
 
 def test_stream_falls_back_to_bounded_latest_response(monkeypatch):
-    response = StreamingResponse([StreamEvent(type="text", chunk="x" * 3000 + "END")])
+    response = StreamingResponse(
+        [StreamEvent(type="text", chunk="x" * 3000 + "END")]
+    )
     monkeypatch.setattr(
         "workshop.agent.models.llm.get_model", lambda _: Backend(response)
     )

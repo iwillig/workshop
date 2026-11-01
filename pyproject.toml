@@ -16,10 +16,15 @@ source = ["workshop", "research_context", "template_engine"]
 omit = ["template_engine/build/*", "template_engine/src/template_engine/templates/*"]
 
 [tool.ruff]
+line-length = 79
 exclude = ["template_engine/build", "template_engine/src/template_engine/templates"]
 
 [tool.ruff.lint]
-select = ["E4", "E7", "E9", "F"]
+select = ["E", "W", "F"]
+
+[tool.ruff.lint.per-file-ignores]
+# Preserve literal model prompts; wrapping them would change their content.
+"workshop/agent/prompts.py" = ["E501"]
 
 [tool.setuptools.packages.find]
 include = ["workshop*", "research_context*"]

@@ -24,7 +24,10 @@ class Conversation:
         content = (
             "invalid response"
             if len(self.responses) == 0
-            else "```mswea_bash_command\necho COMPLETE_TASK_AND_SUBMIT_FINAL_OUTPUT\n```"
+            else (
+                "```mswea_bash_command\n"
+                "echo COMPLETE_TASK_AND_SUBMIT_FINAL_OUTPUT\n```"
+            )
         )
         response = Response(content)
         self.responses.append(response)
@@ -37,7 +40,9 @@ class Backend:
 
 
 def test_real_model_recovers_from_malformed_response(monkeypatch):
-    monkeypatch.setattr("workshop.agent.models.llm.get_model", lambda _: Backend())
+    monkeypatch.setattr(
+        "workshop.agent.models.llm.get_model", lambda _: Backend()
+    )
     model = LlmModel(retry_attempts=1)
     agent = DefaultAgent(model, LocalEnvironment())
     result = agent.run("finish")

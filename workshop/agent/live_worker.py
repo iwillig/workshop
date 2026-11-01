@@ -25,11 +25,20 @@ def main():
 
             if isinstance(agent.env, DockerEnvironment):
                 agent.env.supervised_container_name = request["container_name"]
-            agent.progress_sink = lambda text: send({"type": "progress", "text": text})
+            agent.progress_sink = lambda text: send(
+                {"type": "progress", "text": text}
+            )
             result = agent.run(request["task"])
         send({"type": "result", "result": result})
     except Exception as exc:
-        send({"type": "error", "message": f"{type(exc).__name__}: {exc}"})
+        notes = "\n".join(getattr(exc, "__notes__", []))
+        message = f"{type(exc).__name__}: {exc}"
+        send(
+            {
+                "type": "error",
+                "message": f"{message}\n{notes}" if notes else message,
+            }
+        )
         return 1
     return 0
 

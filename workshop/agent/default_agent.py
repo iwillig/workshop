@@ -23,10 +23,15 @@ from workshop.agent.exceptions import (
     Submitted,
     TimeExceeded,
 )
-from workshop.agent.prompts import DEFAULT_INSTANCE_TEMPLATE, DEFAULT_SYSTEM_TEMPLATE
+from workshop.agent.prompts import (
+    DEFAULT_INSTANCE_TEMPLATE,
+    DEFAULT_SYSTEM_TEMPLATE,
+)
 from workshop.agent.serialize import config_as_dict, recursive_merge
 
-TRAJECTORY_FORMAT = "mini-swe-agent-1.1"  # compatible with mini-swe-agent's inspector
+TRAJECTORY_FORMAT = (
+    "mini-swe-agent-1.1"  # compatible with mini-swe-agent's inspector
+)
 
 
 @dataclass
@@ -38,7 +43,7 @@ class AgentConfig:
     step_limit: int = 0
     """Maximum number of model calls. 0 means no limit."""
     cost_limit: float = 3.0
-    """Stop after exceeding this cost. Only effective when the model is configured with token prices."""
+    """Stop after this cost; requires configured model token prices."""
     wall_time_limit_seconds: int = 0
     """Stop after this many seconds of wall-clock time. 0 means no limit."""
     max_consecutive_format_errors: int = 3
@@ -46,13 +51,15 @@ class AgentConfig:
     output_path: Path | None = None
     """Save the trajectory to this path."""
     parallel_tools: list[str] = field(default_factory=list)
-    """Tool names allowed to run concurrently; all others are serial barriers."""
+    """Tools allowed to run concurrently; others are serial barriers."""
     max_parallel_tools: int = 4
     """Maximum number of concurrent tool calls."""
 
 
 class DefaultAgent:
-    def __init__(self, model, env, *, config_class: type = AgentConfig, **kwargs):
+    def __init__(
+        self, model, env, *, config_class: type = AgentConfig, **kwargs
+    ):
         """See AgentConfig for permitted keyword arguments."""
         self.config = config_class(**kwargs)
         if self.config.max_parallel_tools < 1:
@@ -109,21 +116,37 @@ class DefaultAgent:
 
     def run(self, task: str = "", **kwargs) -> dict:
         """Run until the agent finishes, closing MCP sessions afterward."""
+        result = None
+        primary_error = None
         try:
             if start := getattr(self.env, "ensure_started", None):
                 start()
             with self.mcp_runtime or nullcontext() as runtime:
                 if (
-                    getattr(getattr(self.model, "config", None), "protocol", None)
+                    getattr(
+                        getattr(self.model, "config", None), "protocol", None
+                    )
                     == "native"
                 ):
                     self.model.native_tools = self.builtin_tools.tools + (
                         runtime.tools if runtime else []
                     )
-                return self._run(task, **kwargs)
+                result = self._run(task, **kwargs)
+        except BaseException as exc:
+            primary_error = exc
+            raise
         finally:
             if cleanup := getattr(self.env, "cleanup", None):
-                cleanup()
+                try:
+                    cleanup()
+                except Exception as exc:
+                    warning = f"Environment cleanup failed: {exc}"
+                    self.logger.warning(warning)
+                    if primary_error is not None:
+                        primary_error.add_note(warning)
+                    elif result is not None:
+                        result["cleanup_warning"] = warning
+        return result
 
     def _run(self, task: str = "", **kwargs) -> dict:
         self.extra_template_vars = {"task": task, **kwargs}
@@ -149,12 +172,15 @@ class DefaultAgent:
                 self.step()
                 self.n_consecutive_format_errors = 0
             except FormatError as e:
-                # The call was billed before parsing failed, so query() never got to charge it.
+                # Parsing failed after billing, before recording the cost.
                 error_extra = e.messages[0].get("extra", {})
                 self.cost += error_extra.get("cost", 0.0)
                 if "response" in error_extra:
                     self.add_messages(
-                        {"role": "assistant", "content": error_extra["response"]}
+                        {
+                            "role": "assistant",
+                            "content": error_extra["response"],
+                        }
                     )
                 self.n_consecutive_format_errors += 1
                 if (
@@ -191,7 +217,7 @@ class DefaultAgent:
         return self.execute_actions(self.query())
 
     def query(self) -> dict:
-        """Query the model and return the model message. Override to add hooks."""
+        """Query the model and return its message. Override to add hooks."""
         if (
             0 < self.config.step_limit <= self.n_calls
             or 0 < self.config.cost_limit <= self.cost
@@ -200,7 +226,10 @@ class DefaultAgent:
                 {
                     "role": "exit",
                     "content": "LimitsExceeded",
-                    "extra": {"exit_status": "LimitsExceeded", "submission": ""},
+                    "extra": {
+                        "exit_status": "LimitsExceeded",
+                        "submission": "",
+                    },
                 }
             )
         if (
@@ -225,14 +254,17 @@ class DefaultAgent:
         """Hook called when an action begins execution."""
 
     def execute_actions(self, message: dict) -> list[dict]:
-        """Execute actions in message, add observation messages, return them."""
+        """Execute actions and return the added observation messages."""
         if message.get("extra", {}).get("native_final"):
             submission = message.get("content", "")
             raise Submitted(
                 {
                     "role": "exit",
                     "content": submission,
-                    "extra": {"exit_status": "Submitted", "submission": submission},
+                    "extra": {
+                        "exit_status": "Submitted",
+                        "submission": submission,
+                    },
                 }
             )
         actions = message.get("extra", {}).get("actions", [])
@@ -243,10 +275,14 @@ class DefaultAgent:
             self.on_action_start(action)
             if (
                 "tool" in action
-                and getattr(getattr(self.model, "config", None), "protocol", None)
+                and getattr(
+                    getattr(self.model, "config", None), "protocol", None
+                )
                 == "native"
             ):
-                if action["tool"] in {tool.name for tool in self.builtin_tools.tools}:
+                if action["tool"] in {
+                    tool.name for tool in self.builtin_tools.tools
+                }:
                     return self.builtin_tools.execute(action)
                 if self.mcp_runtime:
                     return self.mcp_runtime.execute(action)
@@ -285,15 +321,21 @@ class DefaultAgent:
         )
 
     def serialize(self, *extra_dicts) -> dict:
-        """Serialize agent state to a json-compatible nested dictionary for saving."""
+        """Serialize agent state as a JSON-compatible dictionary."""
         last_message = self.messages[-1] if self.messages else {}
         last_extra = last_message.get("extra", {})
         agent_data = {
             "info": {
-                "model_stats": {"instance_cost": self.cost, "api_calls": self.n_calls},
+                "model_stats": {
+                    "instance_cost": self.cost,
+                    "api_calls": self.n_calls,
+                },
                 "config": {
                     "agent": config_as_dict(self.config),
-                    "agent_type": f"{self.__class__.__module__}.{self.__class__.__name__}",
+                    "agent_type": (
+                        f"{self.__class__.__module__}."
+                        f"{self.__class__.__name__}"
+                    ),
                 },
                 "exit_status": last_extra.get("exit_status", ""),
                 "submission": last_extra.get("submission", ""),
@@ -302,11 +344,14 @@ class DefaultAgent:
             "trajectory_format": TRAJECTORY_FORMAT,
         }
         return recursive_merge(
-            agent_data, self.model.serialize(), self.env.serialize(), *extra_dicts
+            agent_data,
+            self.model.serialize(),
+            self.env.serialize(),
+            *extra_dicts,
         )
 
     def save(self, path: Path | None, *extra_dicts) -> dict:
-        """Save the trajectory to a file if a path is given. Returns the serialized data."""
+        """Save the trajectory if a path is given; return serialized data."""
         data = self.serialize(*extra_dicts)
         if path:
             path = Path(path)

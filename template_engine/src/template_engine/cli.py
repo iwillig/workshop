@@ -50,7 +50,9 @@ def create(template, output_dir, no_input, values):
     for value in values:
         key, separator, item = value.partition("=")
         if not separator or not key:
-            raise click.BadParameter("Expected KEY=VALUE.", param_hint="--value")
+            raise click.BadParameter(
+                "Expected KEY=VALUE.", param_hint="--value"
+            )
         context[key] = item
     try:
         result = cookiecutter(

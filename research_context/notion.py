@@ -12,12 +12,16 @@ from notion_client.helpers import collect_paginated_api
 def notion_client():
     token = os.environ.get("NOTION_TOKEN", "").strip()
     if not token:
-        raise click.ClickException("Set NOTION_TOKEN to a Notion integration token.")
+        raise click.ClickException(
+            "Set NOTION_TOKEN to a Notion integration token."
+        )
     return Client(auth=token)
 
 
 def page_blocks(client, block_id):
-    blocks = collect_paginated_api(client.blocks.children.list, block_id=block_id)
+    blocks = collect_paginated_api(
+        client.blocks.children.list, block_id=block_id
+    )
     for block in blocks:
         if block.get("has_children"):
             block["children"] = page_blocks(client, block["id"])
@@ -41,7 +45,9 @@ def search_pages(query):
         pages = collect_paginated_api(client.search, **options)
         click.echo(json.dumps(pages, indent=2))
     except APIResponseError as exc:
-        raise click.ClickException(f"Notion request failed ({exc.code}).") from exc
+        raise click.ClickException(
+            f"Notion request failed ({exc.code})."
+        ) from exc
     except (httpx.HTTPError, RequestTimeoutError) as exc:
         raise click.ClickException("Could not connect to Notion.") from exc
 
@@ -56,6 +62,8 @@ def get_page(page_id):
         blocks = page_blocks(client, page_id)
         click.echo(json.dumps({"page": page, "blocks": blocks}, indent=2))
     except APIResponseError as exc:
-        raise click.ClickException(f"Notion request failed ({exc.code}).") from exc
+        raise click.ClickException(
+            f"Notion request failed ({exc.code})."
+        ) from exc
     except (httpx.HTTPError, RequestTimeoutError) as exc:
         raise click.ClickException("Could not connect to Notion.") from exc

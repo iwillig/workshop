@@ -79,7 +79,9 @@ def test_recent_tool_calls_remain_visible_while_waiting():
                 if app.return_value is not None:
                     break
                 await pilot.pause(0.05)
-            assert app.return_value["tool_history"][-1] == "[tool] read file11.py"
+            assert (
+                app.return_value["tool_history"][-1] == "[tool] read file11.py"
+            )
 
     try:
         asyncio.run(run())
@@ -87,7 +89,9 @@ def test_recent_tool_calls_remain_visible_while_waiting():
         release.set()
 
 
-def test_live_sink_continues_receiving_tool_events_after_plain_limit(monkeypatch):
+def test_live_sink_continues_receiving_tool_events_after_plain_limit(
+    monkeypatch,
+):
     from workshop.agent.default_agent import DefaultAgent
     from workshop.agent.interactive import InteractiveAgent
 
@@ -97,7 +101,8 @@ def test_live_sink_continues_receiving_tool_events_after_plain_limit(monkeypatch
         lambda self: {
             "extra": {
                 "actions": [
-                    {"tool": "read", "arguments": {"path": str(i)}} for i in range(40)
+                    {"tool": "read", "arguments": {"path": str(i)}}
+                    for i in range(40)
                 ]
             }
         },
@@ -178,7 +183,8 @@ def test_cli_uses_live_view_on_tty(monkeypatch):
         ),
     )
     monkeypatch.setattr(
-        "workshop.agent.cli.build_agent", lambda config: InteractiveAgent(None, None)
+        "workshop.agent.cli.build_agent",
+        lambda config: InteractiveAgent(None, None),
     )
 
     def fake_run(self, **kwargs):
@@ -213,7 +219,8 @@ def test_cli_returns_standard_interrupt_exit_code(monkeypatch):
         ),
     )
     monkeypatch.setattr(
-        "workshop.agent.cli.build_agent", lambda config: InteractiveAgent(None, None)
+        "workshop.agent.cli.build_agent",
+        lambda config: InteractiveAgent(None, None),
     )
     monkeypatch.setattr(
         AgentLiveView,
@@ -253,7 +260,9 @@ def test_ctrl_c_waits_for_worker_to_finish():
                 if app.return_value is not None:
                     break
                 await pilot.pause(0.05)
-            assert app.return_value["result"]["exit_status"] == "UserInterruption"
+            assert (
+                app.return_value["result"]["exit_status"] == "UserInterruption"
+            )
 
     try:
         asyncio.run(run())

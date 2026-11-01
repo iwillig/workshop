@@ -42,7 +42,8 @@ class MCPConnection:
                 header_env = self.config.get("headers_env", {})
                 if not isinstance(header_env, dict):
                     raise ValueError(
-                        "headers_env must map header names to environment variable names"
+                        "headers_env must map header names to "
+                        "environment variable names"
                     )
                 headers = {}
                 for header, variable in header_env.items():
@@ -52,7 +53,8 @@ class MCPConnection:
                         or not os.environ.get(variable)
                     ):
                         raise ValueError(
-                            f"Missing or invalid environment variable for HTTP header {header!r}"
+                            "Missing or invalid environment variable for "
+                            f"HTTP header {header!r}"
                         )
                     headers[header] = os.environ[variable]
                 if headers:
@@ -60,7 +62,9 @@ class MCPConnection:
                         create_mcp_http_client(headers=headers)
                     )
                     streams = await stack.enter_async_context(
-                        streamable_http_client(self.config["url"], http_client=client)
+                        streamable_http_client(
+                            self.config["url"], http_client=client
+                        )
                     )
                 else:
                     streams = await stack.enter_async_context(
@@ -68,7 +72,9 @@ class MCPConnection:
                     )
             else:
                 raise ValueError("MCP transport must be 'stdio' or 'http'")
-            self.session = await stack.enter_async_context(ClientSession(*streams[:2]))
+            self.session = await stack.enter_async_context(
+                ClientSession(*streams[:2])
+            )
             await self.session.initialize()
         except BaseException:
             await stack.aclose()
@@ -89,14 +95,20 @@ class MCPConnection:
         cursor = None
         seen = set()
         while True:
-            kwargs = {"params": PaginatedRequestParams(cursor=cursor)} if cursor else {}
+            kwargs = (
+                {"params": PaginatedRequestParams(cursor=cursor)}
+                if cursor
+                else {}
+            )
             result = await getattr(self.session, method)(**kwargs)
             items.extend(getattr(result, field))
             cursor = result.next_cursor
             if not cursor:
                 return items
             if cursor in seen:
-                raise RuntimeError("MCP server returned a repeated pagination cursor")
+                raise RuntimeError(
+                    "MCP server returned a repeated pagination cursor"
+                )
             seen.add(cursor)
 
     async def list_tools(self):
@@ -122,7 +134,10 @@ class MCPToolAdapter:
     """Expose one server's capabilities as LLM tool definitions and calls."""
 
     def __init__(self, server_name, connection):
-        if not re.fullmatch(r"[A-Za-z0-9_-]+", server_name) or "__" in server_name:
+        if (
+            not re.fullmatch(r"[A-Za-z0-9_-]+", server_name)
+            or "__" in server_name
+        ):
             raise ValueError("Invalid MCP server name")
         self.prefix = f"mcp__{server_name}__"
         self.connection = connection
@@ -130,7 +145,12 @@ class MCPToolAdapter:
 
     async def discover(self):
         remote = await self.connection.list_tools()
-        reserved = {"list_resources", "read_resource", "list_prompts", "get_prompt"}
+        reserved = {
+            "list_resources",
+            "read_resource",
+            "list_prompts",
+            "get_prompt",
+        }
         self._remote_tools = set()
         tools = []
         for tool in remote:
@@ -139,7 +159,9 @@ class MCPToolAdapter:
                 or tool.name in reserved
                 or tool.name in self._remote_tools
             ):
-                raise ValueError(f"Invalid or conflicting MCP tool name: {tool.name}")
+                raise ValueError(
+                    f"Invalid or conflicting MCP tool name: {tool.name}"
+                )
             self._remote_tools.add(tool.name)
             tools.append(
                 llm.Tool(
@@ -204,6 +226,19 @@ class MCPToolAdapter:
             raise ValueError(f"Unknown MCP tool: {name}")
 
         def serialize(value):
-            return value.model_dump(mode="json", by_alias=True, exclude_none=True)
+            return value.model_dump(
+                mode="json", by_alias=True, exclude_none=True
+            )
 
-        return json.dumps(result, default=serialize)
+        marker = "\n[output truncated]"
+        limit = 50000
+        chunks = []
+        size = 0
+        for chunk in json.JSONEncoder(default=serialize).iterencode(result):
+            remaining = limit - size
+            if len(chunk) > remaining:
+                chunks.append(chunk[:remaining])
+                return "".join(chunks)[: limit - len(marker)] + marker
+            chunks.append(chunk)
+            size += len(chunk)
+        return "".join(chunks)

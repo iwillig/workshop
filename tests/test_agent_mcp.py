@@ -59,7 +59,10 @@ def test_stdio_session_initializes_lists_calls_and_closes(monkeypatch):
             {"transport": "stdio", "command": "server", "args": ["x"]}
         ) as client:
             assert await client.list_tools() == ["tool"]
-            assert await client.call_tool("echo", {"x": 1}) == ("echo", {"x": 1})
+            assert await client.call_tool("echo", {"x": 1}) == (
+                "echo",
+                {"x": 1},
+            )
             assert await client.list_resources() == ["resource"]
             assert await client.read_resource("file:///x") == "file:///x"
             assert await client.list_prompts() == ["prompt"]
@@ -85,6 +88,9 @@ server = MCPServer("test")
 @server.tool()
 def greet(name: str) -> str:
     return "hello " + name
+@server.tool()
+def large() -> str:
+    return "x" * 100000
 @server.resource("test://sample")
 def sample() -> str:
     return "resource content"
@@ -97,7 +103,11 @@ if __name__ == "__main__":
 
     async def run():
         async with MCPConnection(
-            {"transport": "stdio", "command": sys.executable, "args": [str(server)]}
+            {
+                "transport": "stdio",
+                "command": sys.executable,
+                "args": [str(server)],
+            }
         ) as client:
             assert "greet" in [tool.name for tool in await client.list_tools()]
             result = await client.call_tool("greet", {"name": "Ada"})
@@ -108,7 +118,9 @@ if __name__ == "__main__":
             ]
             resource = await client.read_resource("test://sample")
             assert "resource content" in str(resource.contents)
-            assert "greeting" in [prompt.name for prompt in await client.list_prompts()]
+            assert "greeting" in [
+                prompt.name for prompt in await client.list_prompts()
+            ]
             prompt = await client.get_prompt("greeting", {"name": "Ada"})
             assert "greet Ada" in str(prompt.messages)
             adapter = MCPToolAdapter("demo", client)
@@ -123,6 +135,9 @@ if __name__ == "__main__":
             } <= names
             result = await adapter.call("mcp__demo__greet", {"name": "Ada"})
             assert "hello Ada" in result
+            result = await adapter.call("mcp__demo__large", {})
+            assert len(result) <= 50000
+            assert result.endswith("\n[output truncated]")
             assert "resource content" in await adapter.call(
                 "mcp__demo__read_resource", {"uri": "test://sample"}
             )
@@ -144,7 +159,8 @@ server = MCPServer("http-test")
 def echo(text: str) -> str:
     return text
 if __name__ == "__main__":
-    server.run(transport="streamable-http", host="127.0.0.1", port=int(sys.argv[1]))
+    server.run(transport="streamable-http", host="127.0.0.1",
+               port=int(sys.argv[1]))
 """)
     with socket.socket() as sock:
         sock.bind(("127.0.0.1", 0))
@@ -158,7 +174,9 @@ if __name__ == "__main__":
         deadline = time.monotonic() + 15
         while True:
             try:
-                with socket.create_connection(("127.0.0.1", port), timeout=0.2):
+                with socket.create_connection(
+                    ("127.0.0.1", port), timeout=0.2
+                ):
                     break
             except OSError:
                 if time.monotonic() >= deadline or process.poll() is not None:
@@ -169,7 +187,9 @@ if __name__ == "__main__":
             async with MCPConnection(
                 {"transport": "http", "url": f"http://127.0.0.1:{port}/mcp"}
             ) as client:
-                assert "echo" in [tool.name for tool in await client.list_tools()]
+                assert "echo" in [
+                    tool.name for tool in await client.list_tools()
+                ]
                 result = await client.call_tool("echo", {"text": "hello"})
                 assert "hello" in str(result.content)
 
@@ -183,12 +203,72 @@ if __name__ == "__main__":
             process.wait(timeout=5)
 
 
+@pytest.mark.parametrize("kind", ["tool", "resource", "prompt", "list"])
+def test_mcp_adapter_bounds_serialized_results(kind, monkeypatch):
+    class Connection:
+        async def call_tool(self, name, arguments):
+            return {"content": "x" * 100000}
+
+        async def read_resource(self, uri):
+            return {"contents": "x" * 100000}
+
+        async def get_prompt(self, name, arguments):
+            return {"messages": "x" * 100000}
+
+        async def list_resources(self):
+            return [{"text": "x" * 1000} for _ in range(100)]
+
+    async def run():
+        adapter = MCPToolAdapter("demo", Connection())
+        adapter._remote_tools.add("large")
+        names = {
+            "tool": ("large", {}),
+            "resource": ("read_resource", {"uri": "test://x"}),
+            "prompt": ("get_prompt", {"name": "x"}),
+            "list": ("list_resources", {}),
+        }
+        name, args = names[kind]
+        result = await adapter.call(adapter.prefix + name, args)
+        assert len(result) <= 50000
+        assert result.endswith("\n[output truncated]")
+
+    # The adapter must not build a complete JSON string before truncating it.
+    monkeypatch.setattr(
+        "workshop.agent.mcp_client.json.dumps",
+        lambda *a, **kw: (_ for _ in ()).throw(
+            AssertionError("unbounded serialization")
+        ),
+    )
+    asyncio.run(run())
+
+
+def test_mcp_adapter_preserves_small_json_and_exact_limit():
+    import json
+
+    class Connection:
+        async def read_resource(self, uri):
+            return {"text": "x" * (50000 - len('{"text": ""}'))}
+
+    async def run():
+        adapter = MCPToolAdapter("demo", Connection())
+        result = await adapter.call(
+            "mcp__demo__read_resource", {"uri": "test://x"}
+        )
+        assert len(result) == 50000
+        assert json.loads(result)["text"].startswith("x")
+        assert "[output truncated]" not in result
+
+    asyncio.run(run())
+
+
 def test_mcp_adapter_rejects_colliding_tool_names():
     class Connection:
         async def list_tools(self):
             return [
                 SimpleNamespace(
-                    name="read_resource", description="collision", input_schema={}
+                    name="read_resource",
+                    description="collision",
+                    input_schema={},
                 )
             ]
 
@@ -197,7 +277,9 @@ def test_mcp_adapter_rejects_colliding_tool_names():
         with pytest.raises(ValueError, match="conflicting"):
             await adapter.discover()
         with pytest.raises(ValueError, match="does not belong"):
-            await adapter.call("mcp__other__read_resource", {"uri": "test://x"})
+            await adapter.call(
+                "mcp__other__read_resource", {"uri": "test://x"}
+            )
 
     asyncio.run(run())
 
@@ -224,7 +306,9 @@ def test_http_headers_are_loaded_from_environment(monkeypatch):
         async def initialize(self):
             pass
 
-    monkeypatch.setattr("workshop.agent.mcp_client.streamable_http_client", transport)
+    monkeypatch.setattr(
+        "workshop.agent.mcp_client.streamable_http_client", transport
+    )
     monkeypatch.setattr("workshop.agent.mcp_client.ClientSession", Session)
 
     async def run():
@@ -282,7 +366,9 @@ def test_http_initialization_failure_closes_transport(monkeypatch):
         async def initialize(self):
             raise RuntimeError("init failed")
 
-    monkeypatch.setattr("workshop.agent.mcp_client.streamable_http_client", transport)
+    monkeypatch.setattr(
+        "workshop.agent.mcp_client.streamable_http_client", transport
+    )
     monkeypatch.setattr("workshop.agent.mcp_client.ClientSession", Session)
 
     async def run():

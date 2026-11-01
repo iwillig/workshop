@@ -72,7 +72,9 @@ def test_empty_sections_are_normalized(tmp_path):
 def test_system_template_file_relative_to_config(tmp_path, monkeypatch):
     config_dir = tmp_path / "config"
     config_dir.mkdir()
-    (config_dir / "system.txt").write_text("System for {{ task }}", encoding="utf-8")
+    (config_dir / "system.txt").write_text(
+        "System for {{ task }}", encoding="utf-8"
+    )
     config_path = config_dir / "agent.yaml"
     config_path.write_text("agent:\n  system_template_path: system.txt\n")
     monkeypatch.chdir(tmp_path)
@@ -81,7 +83,10 @@ def test_system_template_file_relative_to_config(tmp_path, monkeypatch):
     assert "system_template_path" not in config["agent"]
     agent = build_agent(config)
     agent.extra_template_vars["task"] = "review"
-    assert agent._render_template(agent.config.system_template) == "System for review"
+    assert (
+        agent._render_template(agent.config.system_template)
+        == "System for review"
+    )
 
 
 def test_system_template_file_absolute_path(tmp_path):
@@ -89,13 +94,17 @@ def test_system_template_file_absolute_path(tmp_path):
     template.write_text("System instructions", encoding="utf-8")
     config_path = tmp_path / "agent.yaml"
     config_path.write_text(f"agent:\n  system_template_path: {template}\n")
-    assert load_config(config_path)["agent"]["system_template"] == "System instructions"
+    assert (
+        load_config(config_path)["agent"]["system_template"]
+        == "System instructions"
+    )
 
 
 def test_system_template_file_conflicts_with_inline(tmp_path):
     config_path = tmp_path / "agent.yaml"
     config_path.write_text(
-        "agent:\n  system_template: inline\n  system_template_path: system.txt\n"
+        "agent:\n  system_template: inline\n"
+        "  system_template_path: system.txt\n"
     )
     with pytest.raises(ValueError, match="Set only one"):
         load_config(config_path)

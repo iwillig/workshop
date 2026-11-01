@@ -17,9 +17,12 @@ def test_textual_ctrl_c_stops_supervised_worker(tmp_path):
     started = tmp_path / "started"
     script = tmp_path / "worker.py"
     script.write_text(
-        "import pathlib,sys,time\npathlib.Path(sys.argv[1]).touch()\ntime.sleep(60)\n"
+        "import pathlib,sys,time\n"
+        "pathlib.Path(sys.argv[1]).touch()\ntime.sleep(60)\n"
     )
-    agent = SupervisedAgent({}, command=[sys.executable, str(script), str(started)])
+    agent = SupervisedAgent(
+        {}, command=[sys.executable, str(script), str(started)]
+    )
 
     async def run():
         app = AgentLiveView(agent, "task")
@@ -35,7 +38,9 @@ def test_textual_ctrl_c_stops_supervised_worker(tmp_path):
                 if app.return_value is not None:
                     break
                 await pilot.pause(0.05)
-            assert app.return_value["result"]["exit_status"] == "UserInterruption"
+            assert (
+                app.return_value["result"]["exit_status"] == "UserInterruption"
+            )
             assert time.monotonic() - now < 3
 
     try:
@@ -123,7 +128,9 @@ class Model:
         ):
             time.sleep(0.05)
         assert started.exists(), "agent did not start"
-        while b"Ctrl+C: stop now" not in captured and time.monotonic() < deadline:
+        while (
+            b"Ctrl+C: stop now" not in captured and time.monotonic() < deadline
+        ):
             time.sleep(0.05)
         assert b"Ctrl+C: stop now" in captured, "live view did not render"
         now = time.monotonic()
@@ -162,7 +169,9 @@ class Model:
     def format_message(self, **kwargs): return kwargs
     def serialize(self): return {}
     def query(self, messages):
-        return {"role": "assistant", "content": "done", "extra": {"native_final": True, "actions": [], "usage": {"input": 10, "output": 2}}}
+        return {"role": "assistant", "content": "done",
+                "extra": {"native_final": True, "actions": [],
+                          "usage": {"input": 10, "output": 2}}}
 """)
     monkeypatch.setenv("PYTHONPATH", str(tmp_path) + os.pathsep + os.getcwd())
     agent = SupervisedAgent(
@@ -184,9 +193,12 @@ def test_force_stop_interrupts_blocked_worker(tmp_path):
     started = tmp_path / "started"
     script = tmp_path / "worker.py"
     script.write_text(
-        "import pathlib, sys, time\npathlib.Path(sys.argv[1]).write_text('started')\ntime.sleep(60)\n"
+        "import pathlib, sys, time\n"
+        "pathlib.Path(sys.argv[1]).write_text('started')\ntime.sleep(60)\n"
     )
-    agent = SupervisedAgent({}, command=[sys.executable, str(script), str(started)])
+    agent = SupervisedAgent(
+        {}, command=[sys.executable, str(script), str(started)]
+    )
     result = []
     thread = threading.Thread(target=lambda: result.append(agent.run("task")))
     thread.start()
@@ -215,10 +227,16 @@ def test_force_stop_attempts_docker_cleanup(tmp_path):
     started = tmp_path / "started"
     script = tmp_path / "worker.py"
     script.write_text(
-        "import pathlib,sys,time\npathlib.Path(sys.argv[1]).touch()\ntime.sleep(60)\n"
+        "import pathlib,sys,time\n"
+        "pathlib.Path(sys.argv[1]).touch()\ntime.sleep(60)\n"
     )
     agent = SupervisedAgent(
-        {"environment": {"environment_class": "docker", "executable": str(executable)}},
+        {
+            "environment": {
+                "environment_class": "docker",
+                "executable": str(executable),
+            }
+        },
         command=[sys.executable, str(script), str(started)],
     )
     thread = threading.Thread(target=lambda: agent.run("task"))
@@ -233,7 +251,11 @@ def test_force_stop_attempts_docker_cleanup(tmp_path):
         deadline = time.monotonic() + 3
         while not marker.exists() and time.monotonic() < deadline:
             time.sleep(0.02)
-        assert marker.read_text().splitlines() == ["rm", "-f", agent._container_name]
+        assert marker.read_text().splitlines() == [
+            "rm",
+            "-f",
+            agent._container_name,
+        ]
     finally:
         agent.cancel()
         thread.join(timeout=3)
@@ -245,11 +267,14 @@ def test_force_stop_kills_detached_child(tmp_path):
     script = tmp_path / "worker.py"
     script.write_text("""\
 import pathlib, subprocess, sys, time
-child = subprocess.Popen([sys.executable, "-c", "import time; time.sleep(60)"], start_new_session=True)
+child = subprocess.Popen([sys.executable, "-c", "import time; time.sleep(60)"],
+                         start_new_session=True)
 pathlib.Path(sys.argv[1]).write_text(str(child.pid))
 time.sleep(60)
 """)
-    agent = SupervisedAgent({}, command=[sys.executable, str(script), str(started)])
+    agent = SupervisedAgent(
+        {}, command=[sys.executable, str(script), str(started)]
+    )
     thread = threading.Thread(target=lambda: agent.run("task"))
     thread.start()
     try:
@@ -264,7 +289,9 @@ time.sleep(60)
         deadline = time.monotonic() + 3
         while time.monotonic() < deadline:
             state = subprocess.run(
-                ["ps", "-o", "stat=", "-p", str(pid)], capture_output=True, text=True
+                ["ps", "-o", "stat=", "-p", str(pid)],
+                capture_output=True,
+                text=True,
             ).stdout.strip()
             if not state or state.startswith("Z"):
                 break

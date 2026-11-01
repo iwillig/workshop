@@ -64,7 +64,9 @@ class AgentLiveView(App):
         self.run_worker(self._run_agent, thread=True, exit_on_error=False)
 
     def _run_agent(self):
-        self.agent.progress_sink = lambda text: self.post_message(Progress(text))
+        self.agent.progress_sink = lambda text: self.post_message(
+            Progress(text)
+        )
         try:
             return {"result": self.agent.run(self.agent_task)}
         except Exception as exc:
@@ -94,8 +96,14 @@ class AgentLiveView(App):
 
     def _update_elapsed(self):
         elapsed = int(time.monotonic() - self.started)
-        state = "Stopping agent" if self.stop_event.is_set() else "Ctrl+C: stop now"
-        self.query_one("#elapsed", Static).update(f"Elapsed: {elapsed}s | {state}")
+        state = (
+            "Stopping agent"
+            if self.stop_event.is_set()
+            else "Ctrl+C: stop now"
+        )
+        self.query_one("#elapsed", Static).update(
+            f"Elapsed: {elapsed}s | {state}"
+        )
 
     def action_request_stop(self):
         self.stop_event.set()
@@ -112,5 +120,8 @@ class AgentLiveView(App):
             self.exit(outcome)
         elif event.state in {WorkerState.ERROR, WorkerState.CANCELLED}:
             self.exit(
-                {"error": event.worker.error or RuntimeError("Agent worker stopped")}
+                {
+                    "error": event.worker.error
+                    or RuntimeError("Agent worker stopped")
+                }
             )

@@ -20,7 +20,7 @@ from workshop.agent.prompts import (
 
 
 class ScriptedModel:
-    """A model that replays scripted responses through the real parsing path."""
+    """Replay scripted responses through the real parsing path."""
 
     def __init__(self, *responses: str):
         self.responses = list(responses)
@@ -41,7 +41,9 @@ class ScriptedModel:
     def format_message(self, **kwargs):
         return dict(kwargs)
 
-    def format_observation_messages(self, message, outputs, template_vars=None):
+    def format_observation_messages(
+        self, message, outputs, template_vars=None
+    ):
         return format_observation_messages(
             outputs,
             observation_template=DEFAULT_OBSERVATION_TEMPLATE,
@@ -122,7 +124,11 @@ def test_local_environment_submit_sentinel():
     env = LocalEnvironment(timeout=5)
     with pytest.raises(Submitted) as excinfo:
         env.execute(
-            {"command": "echo COMPLETE_TASK_AND_SUBMIT_FINAL_OUTPUT && echo done"}
+            {
+                "command": (
+                    "echo COMPLETE_TASK_AND_SUBMIT_FINAL_OUTPUT && echo done"
+                )
+            }
         )
     assert excinfo.value.messages[0]["extra"]["submission"] == "done\n"
 
@@ -131,7 +137,9 @@ def test_agent_runs_to_submission(tmp_path):
     trajectory_path = tmp_path / "run.traj.json"
     model = ScriptedModel(
         response("echo hello"),
-        response("echo COMPLETE_TASK_AND_SUBMIT_FINAL_OUTPUT && echo all done"),
+        response(
+            "echo COMPLETE_TASK_AND_SUBMIT_FINAL_OUTPUT && echo all done"
+        ),
     )
     agent = DefaultAgent(
         model, LocalEnvironment(timeout=5), output_path=trajectory_path
@@ -142,7 +150,14 @@ def test_agent_runs_to_submission(tmp_path):
     data = json.loads(trajectory_path.read_text())
     assert data["info"]["exit_status"] == "Submitted"
     roles = [m["role"] for m in data["messages"]]
-    assert roles == ["system", "user", "assistant", "user", "assistant", "exit"]
+    assert roles == [
+        "system",
+        "user",
+        "assistant",
+        "user",
+        "assistant",
+        "exit",
+    ]
 
 
 def test_interactive_agent_runs_without_prompt(monkeypatch):
@@ -150,7 +165,9 @@ def test_interactive_agent_runs_without_prompt(monkeypatch):
         raise AssertionError("agent must not prompt for approval")
 
     monkeypatch.setattr("click.prompt", unexpected_prompt)
-    model = ScriptedModel(response("echo COMPLETE_TASK_AND_SUBMIT_FINAL_OUTPUT"))
+    model = ScriptedModel(
+        response("echo COMPLETE_TASK_AND_SUBMIT_FINAL_OUTPUT")
+    )
     result = InteractiveAgent(model, LocalEnvironment(timeout=5)).run("finish")
     assert result["exit_status"] == "Submitted"
 
@@ -208,7 +225,11 @@ def test_tools_are_serial_by_default():
     class Environment:
         def execute(self, action):
             seen.append(action["name"])
-            return {"output": action["name"], "returncode": 0, "exception_info": ""}
+            return {
+                "output": action["name"],
+                "returncode": 0,
+                "exception_info": "",
+            }
 
         def get_template_vars(self):
             return {}

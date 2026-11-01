@@ -12,11 +12,13 @@ from workshop.agent_config import DEFAULT_CONFIG_PATH, build_agent, load_config
 
 @click.group(name="agent")
 def agent_commands():
-    """Run the workshop mini coding agent (a mini-swe-agent port on the llm library)."""
+    """Run the workshop coding agent (a mini-swe-agent port using llm)."""
 
 
 @agent_commands.command(name="run")
-@click.option("-t", "--task", required=True, help="The task for the agent to solve.")
+@click.option(
+    "-t", "--task", required=True, help="The task for the agent to solve."
+)
 @click.option(
     "-c",
     "--config",
@@ -63,7 +65,10 @@ def agent_commands():
     help="Run commands in this Docker image instead of locally.",
 )
 @click.option(
-    "--step-limit", type=int, default=None, help="Maximum number of model calls."
+    "--step-limit",
+    type=int,
+    default=None,
+    help="Maximum number of model calls.",
 )
 @click.option(
     "--timeout", type=int, default=None, help="Per-command timeout in seconds."
@@ -83,9 +88,14 @@ def run_agent(
 ):
     """Run the agent on a task. Flags override values from the YAML config."""
     try:
-        config = load_config(config_path or DEFAULT_CONFIG_PATH, agent_name=agent_name)
+        config = load_config(
+            config_path or DEFAULT_CONFIG_PATH, agent_name=agent_name
+        )
     except (ValueError, OSError) as exc:
         raise click.ClickException(str(exc)) from exc
+    context = click.get_current_context(silent=True)
+    if context and isinstance(context.obj, dict) and "workshop" in context.obj:
+        config["workshop"] = context.obj["workshop"]
     if model_name:
         config["model"]["model_name"] = model_name
     if output:
@@ -116,7 +126,9 @@ def run_agent(
         view = AgentLiveView(SupervisedAgent(config), task)
         outcome = view.run(inline=True)
         if outcome is None:
-            raise click.ClickException("Live view exited without an agent result")
+            raise click.ClickException(
+                "Live view exited without an agent result"
+            )
         if outcome.get("tool_history"):
             click.echo("Recent tools:")
             for event in outcome["tool_history"]:
@@ -134,23 +146,17 @@ def run_agent(
         result = agent.run(task)
     click.echo(f"exit status: {result.get('exit_status', '')}")
     if result.get("submission"):
-        submission = result["submission"]
-        lines = submission.splitlines(keepends=True)
-        preview = "".join(lines[:40])[:4000]
-        truncated = len(preview) < len(submission)
-        Console().print(preview, markup=False, highlight=False, soft_wrap=True)
-        if truncated:
-            if output:
-                click.echo("[Result truncated; full submission is in the trajectory.]")
-            else:
-                click.echo(
-                    "[Result truncated; use --output to save the full submission in a future run.]"
-                )
+        Console().print(
+            result["submission"], markup=False, highlight=False, soft_wrap=True
+        )
+    if result.get("cleanup_warning"):
+        click.echo(result["cleanup_warning"], err=True)
     if output:
         click.echo(f"trajectory saved to {output}")
     if result.get("exit_status") == "UserInterruption":
         click.echo(
-            "Interrupted. Changes, remote work, or cleanup may be incomplete.", err=True
+            "Interrupted. Changes, remote work, or cleanup may be incomplete.",
+            err=True,
         )
         raise click.exceptions.Exit(130)
     if result.get("exit_status") != "Submitted":

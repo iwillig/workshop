@@ -17,7 +17,12 @@ class InteractiveAgentConfig(AgentConfig):
 
 class InteractiveAgent(DefaultAgent):
     def __init__(
-        self, model, env, *, config_class: type = InteractiveAgentConfig, **kwargs
+        self,
+        model,
+        env,
+        *,
+        config_class: type = InteractiveAgentConfig,
+        **kwargs,
     ):
         super().__init__(model, env, config_class=config_class, **kwargs)
         self._displayed_actions = 0
@@ -29,7 +34,8 @@ class InteractiveAgent(DefaultAgent):
         self._tool_count_lock = threading.Lock()
         if self.config.mode != "yolo":
             raise ValueError(
-                "Tool approval is no longer supported; remove agent.mode or set it to 'yolo'. "
+                "Tool approval is no longer supported; remove agent.mode "
+                "or set it to 'yolo'. "
                 "Commands will run without confirmation."
             )
 
@@ -47,7 +53,10 @@ class InteractiveAgent(DefaultAgent):
                 {
                     "role": "exit",
                     "content": "Stopped by user",
-                    "extra": {"exit_status": "UserInterruption", "submission": ""},
+                    "extra": {
+                        "exit_status": "UserInterruption",
+                        "submission": "",
+                    },
                 }
             )
 
@@ -76,7 +85,10 @@ class InteractiveAgent(DefaultAgent):
                 current[key] = "unknown"
         if self.progress_sink is not None or self._usage_lines < 30:
             self._emit(
-                f"[tokens] call: input {current['input']}, output {current['output']} | total: input {self._usage_total('input')}, output {self._usage_total('output')}"
+                f"[tokens] call: input {current['input']}, "
+                f"output {current['output']} | total: "
+                f"input {self._usage_total('input')}, "
+                f"output {self._usage_total('output')}"
             )
             self._usage_lines += 1
         elif not self._usage_omitted:
@@ -106,7 +118,8 @@ class InteractiveAgent(DefaultAgent):
             self._emit(f"[tools] calls: {self.tool_call_count}")
             if self._has_usage:
                 self._emit(
-                    f"[tokens] run total: input {self._usage_total('input')}, output {self._usage_total('output')}"
+                    f"[tokens] run total: input {self._usage_total('input')}, "
+                    f"output {self._usage_total('output')}"
                 )
 
     def query(self) -> dict:
@@ -119,7 +132,9 @@ class InteractiveAgent(DefaultAgent):
         previous_callback = getattr(self.model, "stream_callback", None)
         if has_stream_callback:
             self.model.stream_callback = lambda source, text: (
-                None if source == "reset" else self._emit(f"[model:{source}] {text}")
+                None
+                if source == "reset"
+                else self._emit(f"[model:{source}] {text}")
             )
         try:
             message = super().query()
@@ -141,7 +156,9 @@ class InteractiveAgent(DefaultAgent):
             tool = str(action.get("tool", "bash")).replace("\n", " ")[:60]
             args = action.get("arguments", {})
             path = args.get("path") if isinstance(args, dict) else None
-            detail = f" {str(path).replace(chr(10), ' ')[:120]}" if path else ""
+            detail = (
+                f" {str(path).replace(chr(10), ' ')[:120]}" if path else ""
+            )
             self._emit(f"[tool] {tool}{detail}", color="cyan")
             self._displayed_actions += 1
         return message

@@ -13,7 +13,9 @@ def test_repository_review_example_uses_only_read_tool(monkeypatch):
         "workshop.agent.models.llm.get_model",
         lambda _: SimpleNamespace(conversation=lambda: object()),
     )
-    path = Path(__file__).resolve().parents[1] / "examples" / "review-agent.yaml"
+    path = (
+        Path(__file__).resolve().parents[1] / "examples" / "review-agent.yaml"
+    )
     agent = build_agent(load_config(path, agent_name="reviewer"))
     assert [tool.name for tool in agent.builtin_tools.tools] == ["read"]
     assert agent.mcp_runtime is None
@@ -48,7 +50,10 @@ agents:
     assert agent.config.system_template == "Named system"
     assert agent.config.step_limit == 7
     assert [tool.name for tool in agent.builtin_tools.tools] == ["read"]
-    assert load_config(config_path, agent_name="coder")["agent"]["step_limit"] == 3
+    assert (
+        load_config(config_path, agent_name="coder")["agent"]["step_limit"]
+        == 3
+    )
     with pytest.raises(ValueError, match="Select"):
         load_config(config_path)
     with pytest.raises(ValueError, match="Unknown"):
@@ -93,7 +98,8 @@ def test_named_agents_reject_unknown_keys_and_tools(tmp_path):
     with pytest.raises(ValueError, match="unexpected"):
         load_config(path, agent_name="first")
     path.write_text(
-        "agents:\n  first:\n    model:\n      protocol: native\n    tools:\n      unknown: {}\n"
+        "agents:\n  first:\n    model:\n      protocol: native\n"
+        "    tools:\n      unknown: {}\n"
     )
     with pytest.raises(ValueError, match="unknown"):
         build_agent(load_config(path, agent_name="first"))

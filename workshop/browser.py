@@ -26,7 +26,9 @@ def screenshot(url, output):
         if not driver.save_screenshot(output):
             raise click.ClickException("Could not save screenshot.")
     except WebDriverException as exc:
-        raise click.ClickException(f"Browser screenshot failed: {exc.msg}") from exc
+        raise click.ClickException(
+            f"Browser screenshot failed: {exc.msg}"
+        ) from exc
     finally:
         if driver is not None:
             driver.quit()

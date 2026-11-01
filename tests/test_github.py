@@ -13,7 +13,9 @@ def run_with_transport(monkeypatch, handler, args):
     monkeypatch.setattr(
         github.httpx,
         "Client",
-        lambda **kwargs: real_client(transport=httpx.MockTransport(handler), **kwargs),
+        lambda **kwargs: real_client(
+            transport=httpx.MockTransport(handler), **kwargs
+        ),
     )
     monkeypatch.delenv("GITHUB_TOKEN", raising=False)
     return CliRunner().invoke(cli, ["research-context", "github", *args])
@@ -25,7 +27,9 @@ def test_list_issues_paginates_and_excludes_pull_requests(monkeypatch):
         assert request.url.params["per_page"] == "100"
         if request.url.params["page"] == "1":
             return httpx.Response(
-                200, json=[{"number": n} for n in range(99)] + [{"pull_request": {}}]
+                200,
+                json=[{"number": n} for n in range(99)]
+                + [{"pull_request": {}}],
             )
         return httpx.Response(200, json=[{"number": 100}])
 
@@ -49,7 +53,9 @@ def test_get_issue_includes_comments(monkeypatch):
             else {"number": 7},
         )
 
-    result = run_with_transport(monkeypatch, handler, ["get-issue", "o/r", "7"])
+    result = run_with_transport(
+        monkeypatch, handler, ["get-issue", "o/r", "7"]
+    )
     assert result.exit_code == 0, result.output
     assert json.loads(result.output) == {
         "issue": {"number": 7},
@@ -92,7 +98,9 @@ def test_search_prs_preserves_query_and_paginates(monkeypatch):
             json={
                 "total_count": 101,
                 "incomplete_results": page == 2,
-                "items": [{"number": n} for n in (range(100) if page == 1 else [100])],
+                "items": [
+                    {"number": n} for n in (range(100) if page == 1 else [100])
+                ],
             },
         )
 
@@ -118,7 +126,9 @@ def test_search_prs_stops_at_github_search_limit(monkeypatch):
             },
         )
 
-    result = run_with_transport(monkeypatch, handler, ["search-prs", "is:open"])
+    result = run_with_transport(
+        monkeypatch, handler, ["search-prs", "is:open"]
+    )
     assert result.exit_code == 0, result.output
     assert pages == list(range(1, 11))
     assert len(json.loads(result.output)["items"]) == 1000
@@ -180,10 +190,14 @@ def test_authentication_and_http_error(monkeypatch):
     monkeypatch.setattr(
         github.httpx,
         "Client",
-        lambda **kwargs: real_client(transport=httpx.MockTransport(handler), **kwargs),
+        lambda **kwargs: real_client(
+            transport=httpx.MockTransport(handler), **kwargs
+        ),
     )
     monkeypatch.setenv("GITHUB_TOKEN", "secret")
-    result = CliRunner().invoke(cli, ["research-context", "github", "list-prs", "o/r"])
+    result = CliRunner().invoke(
+        cli, ["research-context", "github", "list-prs", "o/r"]
+    )
     assert result.exit_code != 0
     assert "HTTP 403" in result.output
     assert "secret" not in result.output

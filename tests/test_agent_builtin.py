@@ -8,15 +8,19 @@ def test_read_edit_and_shell(tmp_path):
     tools = BuiltinTools(LocalEnvironment(cwd=str(tmp_path)))
     assert (
         "two"
-        in tools.execute({"tool": "read", "arguments": {"path": "a.txt", "offset": 2}})[
-            "output"
-        ]
+        in tools.execute(
+            {"tool": "read", "arguments": {"path": "a.txt", "offset": 2}}
+        )["output"]
     )
     assert (
         tools.execute(
             {
                 "tool": "edit",
-                "arguments": {"path": "a.txt", "old_text": "two", "new_text": "three"},
+                "arguments": {
+                    "path": "a.txt",
+                    "old_text": "two",
+                    "new_text": "three",
+                },
             }
         )["returncode"]
         == 0
@@ -24,10 +28,40 @@ def test_read_edit_and_shell(tmp_path):
     assert path.read_text() == "one\nthree\n"
     assert (
         "ok"
-        in tools.execute({"tool": "bash", "arguments": {"command": "echo ok"}})[
-            "output"
-        ]
+        in tools.execute(
+            {"tool": "bash", "arguments": {"command": "echo ok"}}
+        )["output"]
     )
+
+
+def test_read_large_line_is_bounded_without_read_text(tmp_path, monkeypatch):
+    from pathlib import Path
+
+    (tmp_path / "large").write_text("x" * 200000)
+    monkeypatch.setattr(
+        Path,
+        "read_text",
+        lambda *a, **kw: (_ for _ in ()).throw(
+            AssertionError("unbounded read")
+        ),
+    )
+    tools = BuiltinTools(LocalEnvironment(cwd=str(tmp_path)))
+    result = tools.execute({"tool": "read", "arguments": {"path": "large"}})
+    assert result["returncode"] == 0
+    assert len(result["output"]) < 50100
+    assert "[output truncated]" in result["output"]
+
+
+def test_read_offset_skips_long_lines_and_limits_selected_lines(tmp_path):
+    (tmp_path / "file").write_text("x" * 200000 + "\nsecond\nthird\n")
+    tools = BuiltinTools(LocalEnvironment(cwd=str(tmp_path)))
+    result = tools.execute(
+        {
+            "tool": "read",
+            "arguments": {"path": "file", "offset": 2, "limit": 1},
+        }
+    )
+    assert result["output"] == "second"
 
 
 def test_read_edit_reject_escape_and_ambiguous_edits(tmp_path):
@@ -38,7 +72,9 @@ def test_read_edit_reject_escape_and_ambiguous_edits(tmp_path):
     (root / "a.txt").write_text("same same")
     tools = BuiltinTools(LocalEnvironment(cwd=str(root)))
     assert (
-        tools.execute({"tool": "read", "arguments": {"path": "link"}})["returncode"]
+        tools.execute({"tool": "read", "arguments": {"path": "link"}})[
+            "returncode"
+        ]
         != 0
     )
     assert (
@@ -51,7 +87,11 @@ def test_read_edit_reject_escape_and_ambiguous_edits(tmp_path):
         tools.execute(
             {
                 "tool": "edit",
-                "arguments": {"path": "a.txt", "old_text": "same", "new_text": "x"},
+                "arguments": {
+                    "path": "a.txt",
+                    "old_text": "same",
+                    "new_text": "x",
+                },
             }
         )["returncode"]
         != 0

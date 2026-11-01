@@ -18,9 +18,14 @@ def live_model(monkeypatch):
     if not token:
         pytest.fail("Set HF_TOKEN to run the live Hugging Face model tests.")
     backend = Chat(
-        model_id="workshop-live-test", model_name=MODEL, api_base=ENDPOINT, key=token
+        model_id="workshop-live-test",
+        model_name=MODEL,
+        api_base=ENDPOINT,
+        key=token,
     )
-    monkeypatch.setattr("workshop.agent.models.llm.get_model", lambda _: backend)
+    monkeypatch.setattr(
+        "workshop.agent.models.llm.get_model", lambda _: backend
+    )
     return LlmModel(model_name="workshop-live-test", retry_attempts=1)
 
 
@@ -41,7 +46,13 @@ def test_live_model_conversation(live_model):
     assert first["extra"]["actions"][0]["command"]
     assert first["extra"]["cost"] >= 0
     messages.extend(
-        [first, {"role": "user", "content": "Now write a command that prints goodbye."}]
+        [
+            first,
+            {
+                "role": "user",
+                "content": "Now write a command that prints goodbye.",
+            },
+        ]
     )
     second = live_model.query(messages)
     assert second["extra"]["actions"][0]["command"]

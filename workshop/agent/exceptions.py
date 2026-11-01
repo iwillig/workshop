@@ -2,7 +2,7 @@
 
 
 class InterruptAgentFlow(Exception):
-    """Raised to interrupt the agent flow and add messages to the trajectory."""
+    """Interrupt the agent flow and add messages to the trajectory."""
 
     def __init__(self, *messages: dict):
         self.messages = messages

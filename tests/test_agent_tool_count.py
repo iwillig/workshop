@@ -13,7 +13,10 @@ def test_interactive_counts_executed_tool_calls(capsys):
             return {}
 
         def format_observation_messages(self, message, outputs, template_vars):
-            return [{"role": "user", "content": output["output"]} for output in outputs]
+            return [
+                {"role": "user", "content": output["output"]}
+                for output in outputs
+            ]
 
     class Environment:
         def get_template_vars(self):
@@ -86,7 +89,9 @@ def test_live_view_shows_latest_model_snippet_without_touching_tools():
                 if app.return_value is not None:
                     break
                 await pilot.pause(0.05)
-            assert app.return_value["model_snippet"].startswith("[model:reasoning]")
+            assert app.return_value["model_snippet"].startswith(
+                "[model:reasoning]"
+            )
 
     try:
         asyncio.run(run())

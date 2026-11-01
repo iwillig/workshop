@@ -24,7 +24,9 @@ def test_builtin_template_creates_project(tmp_path):
     project = tmp_path / "my_project"
     assert "My Project" in (project / "README.md").read_text()
     assert (
-        tomllib.loads((project / "pyproject.toml").read_text())["project"]["name"]
+        tomllib.loads((project / "pyproject.toml").read_text())["project"][
+            "name"
+        ]
         == "my_project"
     )
 
@@ -32,7 +34,9 @@ def test_builtin_template_creates_project(tmp_path):
 def test_local_template_hooks_do_not_run(tmp_path):
     template = tmp_path / "template"
     template.mkdir()
-    (template / "cookiecutter.json").write_text(json.dumps({"name": "example"}))
+    (template / "cookiecutter.json").write_text(
+        json.dumps({"name": "example"})
+    )
     directory = template / "{{cookiecutter.name}}"
     directory.mkdir()
     (directory / "hello.txt").write_text("Hello {{ cookiecutter.name }}")
@@ -78,7 +82,8 @@ def test_invalid_template_and_value(tmp_path):
     assert result.exit_code != 0
     assert "local directory" in result.output
     result = runner.invoke(
-        cli, ["template-engine", "create", "python-project", "--value", "invalid"]
+        cli,
+        ["template-engine", "create", "python-project", "--value", "invalid"],
     )
     assert result.exit_code != 0
     assert "KEY=VALUE" in result.output

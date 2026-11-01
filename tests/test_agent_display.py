@@ -7,7 +7,7 @@ from workshop.agent.interactive import InteractiveAgent
 from workshop.agent.default_agent import DefaultAgent
 
 
-def test_long_submission_is_bounded_and_marks_omission(monkeypatch):
+def test_long_submission_is_printed_in_full(monkeypatch):
     text = "start\n" + "x" * 20000 + "\nend"
     monkeypatch.setattr(
         "workshop.agent.cli.build_agent",
@@ -17,17 +17,20 @@ def test_long_submission_is_bounded_and_marks_omission(monkeypatch):
     )
     result = CliRunner().invoke(agent_commands, ["run", "--task", "task"])
     assert result.exit_code == 0
-    assert "start" in result.output
-    assert "truncated" in result.output.lower()
-    assert len(result.output) < 5000
-    assert "--output" in result.output
+    assert text in result.output
+    assert "truncated" not in result.output.lower()
 
 
-def test_short_submission_with_trailing_newline_is_not_marked_truncated(monkeypatch):
+def test_short_submission_with_trailing_newline_is_not_marked_truncated(
+    monkeypatch,
+):
     monkeypatch.setattr(
         "workshop.agent.cli.build_agent",
         lambda config: SimpleNamespace(
-            run=lambda task: {"exit_status": "Submitted", "submission": "All clear.\n"}
+            run=lambda task: {
+                "exit_status": "Submitted",
+                "submission": "All clear.\n",
+            }
         ),
     )
     result = CliRunner().invoke(agent_commands, ["run", "--task", "task"])

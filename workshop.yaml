@@ -1,0 +1,5 @@
+# Project-wide defaults. Agent definitions remain in their own YAML files.
+llm:
+  logging:
+    enabled: false
+    database: .workshop/logs.db

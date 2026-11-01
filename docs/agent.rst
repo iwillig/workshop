@@ -27,6 +27,44 @@ The agent system is organized as sibling Python packages:
 
 The benchmark and evaluation packages do not yet provide runners or APIs.
 
+Project configuration
+---------------------
+
+``workshop.yaml`` holds project-wide settings and is separate from agent
+configuration files. The CLI searches the current directory and its parents
+for the nearest ``workshop.yaml``. Use ``workshop --workshop-config PATH`` to
+select another file explicitly. Missing configuration uses defaults; invalid
+configuration fails. Relative paths in this file resolve from its directory.
+
+Agent model-call logging is disabled by default. To enable it explicitly:
+
+.. code-block:: yaml
+
+   llm:
+     logging:
+       enabled: true
+       database: .workshop/logs.db
+
+The repository's ``workshop.yaml`` shows these settings with logging disabled,
+and ``.workshop/`` is ignored by Git. When enabled, completed model responses
+are recorded using LLM's SQLite logging API. Records can include system and user
+prompts, workspace contents, tool calls and results, model responses, usage and
+provider metadata. Tool results are normally recorded in the next completed
+model response, so interrupted or failed runs can have incomplete logs.
+Logging errors fail the run; a model request may already have completed before
+an error is detected. Forced interruption may also leave incomplete records.
+This setting does not control standalone ``llm`` CLI logging or provider
+retention, and does not move existing logs. Inspect this database with
+``llm logs list --database PATH``.
+
+New database files are created with owner-only permissions; on POSIX an existing
+file with group or other access is rejected. New final parent directories are
+created with owner-only permissions. Use a trusted private directory, check
+permissions on existing and intermediate directories, and protect backups and
+SQLite sidecar files. Logging is not supported for arbitrary custom models
+unless they implement the workshop logging configuration interface. The optional
+trajectory output is separate and remains subject to its own privacy risks.
+
 Before you run it
 -----------------
 
@@ -140,9 +178,14 @@ tool parallel-safe if overlapping it with other listed tools is acceptable:
 concurrent writes and commands can race. The fenced-shell protocol produces
 only one action at a time. Native tool-call batches can use these settings.
 
-Tool output sent to the model is limited to 50,000 characters, with the middle
-removed when necessary. This bounds model input and trajectories, not the memory
-used while a subprocess or server produces its output.
+Tool output sent to the model is limited to approximately 50,000 characters.
+Local and Docker command output is drained with bounded in-memory capture, and
+the read tool reads files in bounded chunks. MCP results are truncated during JSON
+serialization, with a marker when incomplete; truncated results may not be valid
+JSON. The MCP SDK still receives and parses complete responses, and individual
+serialized values may be large. Docker startup and cleanup output are not
+covered by the command-output limit. These limits do not bound transport or
+server memory.
 
 The packaged configuration sets a 50-call limit and a 30-second command timeout.
 The agent also defaults to a cost limit of 3.0, no wall-time limit, and three
@@ -317,7 +360,7 @@ exposes only the built-in read tool. From the repository root, run:
    just review-agent
 
 The recipe prints concise tool progress, reported per-call and cumulative token
-usage, and a final review preview to standard output; it does not print full
+usage, and the complete final review to standard output; it does not print full
 tool observations or save a trajectory. Missing usage is shown as unknown, and
 cumulative totals are marked partial if a provider omits any counts. Totals sum
 reported usage across calls, so repeated context contributes to input tokens.
@@ -336,10 +379,8 @@ the background. The command exits with status 130. Changes and trajectories
 may be incomplete, remote requests can continue, and cleanup is best-effort;
 check for leftover containers or processes. For redirected output, non-POSIX
 systems, or ``--no-live``, the CLI uses plain output and standard terminal
-signal handling rather than this supervised stop. The final preview is limited to 40 lines
-and 4,000 characters and is marked when truncated. The reviewer prompt requests
-a short summary; the display limit is a preview, not a second model-generated
-summary. To preserve the full submission, configure ``--output`` before running. To choose different files or save a trajectory, run the
+signal handling rather than this supervised stop. The final submission is printed
+in full after the live view closes. To choose different files or save a trajectory, run the
 underlying command directly:
 
 .. code-block:: shell
@@ -406,7 +447,8 @@ back. ``--cwd`` names a directory inside the container; it must exist. The
 container environment is not a hardened sandbox: network access and other
 Docker defaults apply, and a command timeout does not guarantee that the
 container process has stopped. Cleanup waits for Docker to stop the container
-and falls back to forced removal. Abrupt process termination can still leave
+and falls back to forced removal. Cleanup failures are reported separately from
+the agent result or primary error. Abrupt process termination can still leave
 containers behind; verify and remove leftovers if necessary. See
 ``docs/mini-agent-sandbox.rst`` for the separate proposed hardened sandbox.
 

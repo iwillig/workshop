@@ -9,8 +9,23 @@ from workshop.browser import browser_commands
 
 
 @click.group()
-def cli():
+@click.option(
+    "--workshop-config",
+    type=click.Path(exists=True, dir_okay=False),
+    default=None,
+    help="Path to the core workshop.yaml configuration.",
+)
+@click.pass_context
+def cli(ctx, workshop_config):
     """Tools for the Common AI agent workshop."""
+    from workshop.config import load_workshop_config
+
+    try:
+        ctx.ensure_object(dict)["workshop"] = load_workshop_config(
+            path=workshop_config
+        )
+    except (ValueError, OSError) as exc:
+        raise click.ClickException(str(exc)) from exc
 
 
 cli.add_command(research_context_cli, name="research-context")

@@ -43,7 +43,7 @@ __all__ = [
 
 
 def __getattr__(name):
-    """Keep legacy configuration exports without coupling runtime imports to YAML."""
+    """Keep legacy configuration exports without coupling imports to YAML."""
     if name in {"DEFAULT_CONFIG_PATH", "build_agent", "load_config"}:
         import workshop.agent_config as config
 

@@ -14,7 +14,11 @@ class SupervisedAgent:
 
     def __init__(self, config, *, command=None):
         self.config = config
-        self.command = command or [sys.executable, "-m", "workshop.agent.live_worker"]
+        self.command = command or [
+            sys.executable,
+            "-m",
+            "workshop.agent.live_worker",
+        ]
         self.progress_sink = None
         self.stop_event = None
         self._process = None
