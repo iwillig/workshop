@@ -177,6 +177,98 @@ The test uses a pinned local image and does not pull it. A failure can leave a
 ``workshop-crash-*`` container; inspect and remove only the identified test
 container if needed.
 
+Standalone controller cgroup diagnostic
+---------------------------------------
+
+``workshop.agent_benchmark.crun_cgroup_probe.run_cgroup_probe()`` creates a
+unique transient user-systemd service running only a fixed sleep command. It
+checks the service's reported delegation setting, reads back 64 MiB memory,
+32-process and 50% CPU limits, and observes the cgroup's frozen and thawed
+states. It then stops that service and checks both unit and cgroup removal.
+It does not invoke ``crun``, run an agent, or enable benchmark execution.
+Run it only with permission: it creates and controls a real user service.
+
+A reported ``Delegate=yes`` is not proof that a controller can create and
+manage a delegated child cgroup, that descendants cannot change limits, or that
+the proposed OCI controller works. The freezer observation is not proof of
+safe artifact export. A failed or timed-out start can leave cleanup unverified;
+the report includes the exact unit name for investigation. Readiness remains
+false. The proposed standalone controller and its outstanding review gates are
+in ``docs/agent-evaluation-crun-design.md``.
+
+``workshop.agent_benchmark.crun_child_cgroup_probe.run_child_probe()`` is a
+separate diagnostic that starts a fixed transient user service. The service
+moves itself into its own delegated child cgroup, enables the CPU, memory,
+and PID controllers, and sets bounded child limits including zero swap. It
+starts a fixed sleep descendant. The host diagnostic checks both processes'
+identity and membership, observes populated freeze/thaw states and membership
+at each checkpoint, then stops the service and checks cgroup removal. Run it
+only with permission; it changes a real user-service cgroup. Results and an
+exact unit name are reported even when cleanup is unverified. This is not a
+``crun`` container, does not prove untrusted descendants cannot escape or
+change limits, and does not implement artifact export or benchmark execution.
+
+Frozen tmpfs export feasibility
+-------------------------------
+
+The opt-in ``tests/test_crun_export_integration.py`` diagnostic starts a fixed
+synthetic program in a throwaway rootless ``crun`` OCI bundle inside a
+delegated user-service child cgroup. It observes that the init process belongs
+to that child, freezes the populated cgroup, and reads one known synthetic
+file through a host-opened ``/proc/<pid>/root/tmp`` directory descriptor. It
+then verifies the group is still frozen and the init has not exited, thaws and
+kills the service, and checks runtime and cgroup cleanup.
+
+This test requires Linux, user systemd, ``crun``, ``gcc``, the x86-64 dynamic
+loader and libc at ``/lib64``, and ``pidfd_open``. It is opt-in because it
+creates namespaces and changes a disposable user-service cgroup:
+
+.. code-block:: shell
+
+   WORKSHOP_CRUN_EXPORT_PROBE=1 pipenv run pytest \\
+     tests/test_crun_export_integration.py
+
+The fixed-file reader is a diagnostic only: it is not a general safe artifact
+collector and does not prove safe path traversal, mount-boundary handling,
+race resistance against hostile processes, or that no external process can
+mutate the workspace. The diagnostic runs a fixed trusted program as UID 0
+inside its user namespace, without the final seccomp/LSM policy or runtime-managed
+cgroup setup. It does not establish a secure benchmark sandbox. A first cleanup
+attempt timed out because a container init remained alive; the diagnostic now
+tries KILL before stopping and verifies cleanup. Failures may still leave a
+``workshop-export-*`` user service or OCI runtime state that needs investigation.
+Benchmark readiness remains false.
+
+Inherited release-pipe experiment
+---------------------------------
+
+``workshop.agent_benchmark.crun_release_probe.run_release_probe()`` starts a
+fixed local test process with a one-way inherited pipe. It tests default denial,
+a simulated successful check, simulated PID mismatch, forged child messages
+(including a spoofed success marker), a closed channel, and descriptor cleanup.
+The fixed test child does not start an agent; its output is never sufficient to
+authorize a release.
+
+The check flag and identity mismatch are **simulated**. A separate opt-in
+``tests/test_crun_release_integration.py`` test passes a pipe through a real
+rootless ``crun`` bundle to a fixed verifier program. It exercises denial,
+simulated approval and PID mismatch, an invalid byte, forged child output, and
+closing FD 3 before executing a fixed follow-up program. The test checks the
+runtime state and, when available, the verifier pidfd at cleanup:
+
+.. code-block:: shell
+
+   WORKSHOP_CRUN_RELEASE_PROBE=1 pipenv run pytest \\
+     tests/test_crun_release_integration.py
+
+This is not a production release protocol: the test runs UID 0 inside a user
+namespace with the ``crun`` cgroup manager disabled and without the final
+seccomp/LSM policy. It does not authenticate a container verifier or verify
+namespaces, cgroups, effective policy, or race resistance. The mismatch is
+simulated, not a real process-substitution attack, and child output is not
+security evidence. Readiness remains false, and the real handshake still needs
+independent security review.
+
 Private storage
 ---------------
 

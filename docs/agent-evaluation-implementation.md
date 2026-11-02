@@ -8,22 +8,26 @@ check a box only when the implementation and its verification are complete.
 the broker prototype or current Docker environment to run untrusted benchmark
 agents. The sandbox design in `docs/agent-evaluation-sandbox.rst` is proposed
 and still needs security review. `docs/agent-evaluation-plan.md` contains the
-broader design and `docs/agent-evaluation.rst` documents current APIs.
+broader design and `docs/agent-evaluation.rst` documents current APIs. The
+proposed critical path to a first benchmark is in
+`docs/agent-evaluation-completion-plan.md`.
 
 ## Agreed boundaries
 
 - [x] Keep `workshop.agent`, `workshop.agent_config`,
   `workshop.agent_benchmark`, and `workshop.agent_eval` as sibling packages.
-- [x] Target rootless Podman on Linux for the initial isolation profile; do not
-  treat a shared-kernel container as equivalent to a VM.
+- [x] Choose rootless Podman on Linux for the initial diagnostics and propose a
+  standalone rootless `crun` profile after the inode investigation. Neither
+  profile is approved for benchmarks or equivalent to a VM.
 - [x] Use a host-controlled model broker. Coding and review benchmarks may use
   an explicitly selected remote provider with sanitized fixtures; trace review
   must use a locally controlled model and have no external network or MCP access.
 - [x] Keep benchmark results report-only; require human review for review
   findings and proposal promotion. Do not add tool-call approvals or automatic
   prompt, skill, or suite changes.
-- [x] Distinguish task failure, pending human review, and infrastructure error
-  from a pass. Fail closed when required isolation cannot be verified.
+- [x] Require distinct task-failure, pending-review, and infrastructure-error
+  outcomes and fail-closed isolation. Outcome contracts exist; the runner and
+  enforcement are not implemented.
 
 ## Current foundation
 
@@ -79,6 +83,24 @@ is not an approved benchmark image, and readiness remains false.
   standalone controller design is in `docs/agent-evaluation-crun-design.md`;
   independent review and implementation remain open. Do not substitute a byte
   or memory limit for an inode limit.
+- [x] Exercise a disposable user-systemd service with requested memory, PID,
+  and CPU limits and observe freeze/thaw and cleanup on the local host. This
+  does not prove standalone OCI enforcement.
+- [x] Exercise a fixed user service moving itself into a delegated child cgroup;
+  verify child CPU, memory, zero-swap and PID settings, service and fixed sleep
+  descendant membership at populated freeze/thaw checkpoints, and cleanup on
+  this host. Descendant escape resistance and `crun` policy enforcement remain
+  unverified.
+- [x] Run an opt-in fixed-file rootless `crun` feasibility diagnostic: freeze
+  a populated child cgroup, open the init's tmpfs through `/proc`, read a known
+  synthetic file, and verify thaw and cleanup. This is not safe general artifact
+  collection or proof that the full sandbox boundary holds.
+- [x] Add a fixed-local-process, inherited one-way pipe experiment with simulated
+  approval and identity mismatch, denial, forged output, closure and FD cleanup.
+- [x] Pass a one-way FD through a disposable rootless `crun` bundle to a fixed
+  verifier; test denial, simulated approval/mismatch, invalid input, forged
+  output and closure before a fixed follow-up program. This does not authenticate
+  a production verifier or verify its policy, identity, or race resistance.
 
 - [ ] Agree on exact supported runtime and image requirements, image
   provenance, seccomp/LSM policy, filesystem quota mechanism, resource limits,
