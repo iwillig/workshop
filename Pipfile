@@ -29,6 +29,7 @@ gitpython = "*"
 mcp = "*"
 textual = ">=8.2,<9"
 rich = "*"
+pydantic = ">=2,<3"
 
 [dev-packages]
 pytest = "*"

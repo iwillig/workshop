@@ -34,6 +34,8 @@ Define how to fingerprint configuration without recording credential values. Ens
 
 ## Isolation and trusted evaluation
 
+The earlier proposed profile targets rootless Podman on Linux with a trusted model broker and black-box trusted scoring; see `agent-evaluation-sandbox.rst`. A standalone rootless crun alternative is proposed in `agent-evaluation-crun-design.md` after an inode-quota feasibility test. Neither design is approved or implemented; security review and local-only trace-review transport enforcement remain blockers.
+
 The current Docker execution environment is **not** a hardened sandbox. Do not treat a separate directory, a separate same-user process, or ordinary Docker defaults as a security boundary.
 
 1. Establish and document a threat model and a testable sandbox contract before implementing real benchmark execution. At minimum, the agent must not receive authoritative checks, host workspace mounts, host credentials, a container runtime socket, or unnecessary network access. Apply resource and time limits and clean up on success, failure, timeout, and interruption.
@@ -106,7 +108,7 @@ Document suite creation, agent associations, sandbox requirements, local trace r
 
 ## Remaining design decisions
 
-- Exact sandbox runtime and enforcement mechanism, especially allowing only the local model endpoint without external network access.
+- Exact rootless Podman enforcement and broker protocol, especially allowing only the local model endpoint for trace review without external network access.
 - How trusted scoring runs agent-produced code without exposing hidden checks or allowing the code to tamper with the scoring environment.
 - Exact case schemas and the structured review format, including how human judgments are recorded.
 - CLI names, suite IDs/versioning, private storage permissions, retention, and deletion.

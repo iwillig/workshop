@@ -1,4 +1,5 @@
 """Benchmark subsystem boundary.
 
-Benchmark definitions and runners are not implemented yet.
+Versioned benchmark definitions are available in ``contracts``.
+Benchmark execution is not implemented yet.
 """

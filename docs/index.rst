@@ -16,6 +16,7 @@ A declaration does not mean that a feature using it is implemented.
 * `Notion SDK for Python <https://github.com/ramnes/notion-sdk-py>`_ accesses the Notion API.
 * `HTTPX <https://www.python-httpx.org/>`_ provides HTTP communication.
 * `LLM <https://llm.datasette.io/>`_ provides tools for working with language models.
+* `Pydantic <https://docs.pydantic.dev/>`_ validates evaluation contracts.
 * `SQLAlchemy <https://www.sqlalchemy.org/>`_ provides database tools for Python.
 * `Quart <https://quart.palletsprojects.com/>`_ provides an asynchronous web framework.
 * `Jinja <https://jinja.palletsprojects.com/>`_ renders templates.
@@ -40,5 +41,7 @@ A declaration does not mean that a feature using it is implemented.
 
    workshop-cli
    agent
+   agent-evaluation
+   agent-evaluation-sandbox
    local-models
    mini-agent-sandbox

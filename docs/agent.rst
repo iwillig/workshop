@@ -22,10 +22,11 @@ The agent system is organized as sibling Python packages:
 * ``workshop.agent_config`` loads named or legacy YAML configurations and
   builds agents. Configuration loading does not require constructing an agent.
   Existing ``workshop.agent.config`` imports remain available for compatibility.
-* ``workshop.agent_benchmark`` is a placeholder for benchmark suites and runs.
-* ``workshop.agent_eval`` is a placeholder for evaluations and trace review.
+* ``workshop.agent_benchmark`` defines versioned benchmark cases and suites.
+* ``workshop.agent_eval`` defines evaluation records and private JSON storage.
 
-The benchmark and evaluation packages do not yet provide runners or APIs.
+The benchmark and evaluation packages do not yet provide runners or trace
+review. See :doc:`agent-evaluation` for the available contracts.
 
 Project configuration
 ---------------------
