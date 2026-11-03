@@ -32,9 +32,13 @@ for the local runner. See `docs/agent-evaluation.rst` for usage and limitations.
 - [x] Add one versioned coding suite and one review suite with verified fixture
   and scoring hashes, local agent execution, and explicit acknowledgement.
 - [x] Store private JSON reports with deterministic coding results and review
-  findings pending human judgment. A fake-agent CLI test exercises the adapter;
-  a real model run is optional and provider-dependent.
-- [ ] Add richer cases, trace capture, recorded human judgments, and comparisons.
+  findings pending human judgment. Live `hf-glm` review and coding smoke runs
+  completed; the coding check passed and a human pass was recorded separately
+  from the original pending review result.
+- [x] Record human judgments separately from original benchmark results.
+- [x] Record complete reported usage totals in run reports and exit nonzero
+  when a case has an infrastructure error; report-only outcomes exit zero.
+- [ ] Add richer cases, trace capture, and comparisons.
 
 ## Current foundation
 

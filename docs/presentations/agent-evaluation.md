@@ -160,8 +160,9 @@ The original run remains unchanged. Reviewer identity is self-declared.
 # Try the local review benchmark
 
 ```sh
-export HF_TOKEN  # set a valid token in your shell first
-just benchmark-review
+workshop benchmark run --suite review-v1 \\
+  --config examples/review-agent.yaml --agent reviewer \\
+  --storage "$HOME/private-benchmarks" --local
 ```
 
 - Uses the configured `reviewer` and the `review-v1` suite.

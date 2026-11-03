@@ -71,9 +71,10 @@ below describe additional capabilities, not implemented features.
 ## Coding agent
 
 See the [agent guide](docs/agent.rst) for setup, usage, and execution risks.
-The agent and configuration are separate packages, with benchmark and evaluation
-package boundaries reserved for future work. Local commands run with your user
-permissions and are not sandboxed.
+The agent and configuration are separate packages. The benchmark and evaluation
+packages provide report-only local suites and private human-review records; see
+[agent evaluation](docs/agent-evaluation.rst). Local commands and benchmark
+checks run with your user permissions and are not sandboxed.
 
 ## Project templates
 
@@ -82,7 +83,9 @@ Use the [template engine](template_engine/readme.md) to generate projects from b
 ## Testing
 
 Install development dependencies with `pipenv sync --dev` and run tests with
-`pipenv run python -m pytest tests`. Property-based tests use the beta
+`pipenv run python -m pytest tests`. Live model and benchmark tests require
+explicit opt-in; see the [agent guide](docs/agent.rst) and
+[agent evaluation guide](docs/agent-evaluation.rst). Property-based tests use the beta
 [Hegel Python library](https://github.com/hegeldev/hegel/tree/main/frontends/python),
 installed as `hegeltest` and imported as `hegel`. See
 `tests/test_github_properties.py` for an example. To report coverage for the

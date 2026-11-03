@@ -11,6 +11,11 @@ from workshop.agent.models import LlmModel
 ENDPOINT = "https://ogabjrf7kkaavl1f.endpoints.huggingface.cloud/v1"
 MODEL = "unsloth/Qwen3.8-27B-GGUF"
 
+pytestmark = pytest.mark.skipif(
+    os.environ.get("WORKSHOP_AGENT_MODEL_LIVE") != "1",
+    reason="set WORKSHOP_AGENT_MODEL_LIVE=1 to run the live model test",
+)
+
 
 @pytest.fixture
 def live_model(monkeypatch):

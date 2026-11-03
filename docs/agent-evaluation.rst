@@ -37,12 +37,20 @@ can leave files or processes behind. Existing step, wall-time, and command
 limits apply, but wall time is checked between agent steps and cannot forcibly
 interrupt a blocked model call or remote work.
 
+The report records total input and output tokens only when the agent's model
+reported usage for every model call of the run; any missing call leaves that
+total null. Cost remains null unless a real implementation provides it. If any
+case ends with an infrastructure error, the report is still saved and printed,
+a warning is written to stderr, and the command exits nonzero. Coding failures
+and pending review findings are report-only quality outcomes and still exit
+zero.
+
 Coding cases execute the fixed check locally and report pass or fail. Review
 findings and the expected defect are saved in the private report with a
 ``pending_human_review`` outcome; a person must judge the findings. Agent and
 check execution failures are infrastructure errors. Reports retain separate
-outcome counts, and unavailable usage and cost remain null. No quality gate,
-trace capture, or automatic human judgment is provided. Human judgments can be
+outcome counts. No quality gate, trace capture, or automatic human judgment
+is provided. Human judgments can be
 recorded separately without changing the original run:
 
 .. code-block:: bash

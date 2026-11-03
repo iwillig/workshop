@@ -22,11 +22,13 @@ The agent system is organized as sibling Python packages:
 * ``workshop.agent_config`` loads named or legacy YAML configurations and
   builds agents. Configuration loading does not require constructing an agent.
   Existing ``workshop.agent.config`` imports remain available for compatibility.
-* ``workshop.agent_benchmark`` defines versioned benchmark cases and suites.
-* ``workshop.agent_eval`` defines evaluation records and private JSON storage.
+* ``workshop.agent_benchmark`` provides versioned cases, suites, and a
+  report-only runner for trusted local fixtures.
+* ``workshop.agent_eval`` provides evaluation records, private JSON storage,
+  and human review decisions.
 
-The benchmark and evaluation packages do not yet provide runners or trace
-review. See :doc:`agent-evaluation` for the available contracts.
+Trace review is not implemented. See :doc:`agent-evaluation` for benchmark
+usage and the local runner's safety limits.
 
 Project configuration
 ---------------------
@@ -223,14 +225,16 @@ Live model tests
 ----------------
 
 ``tests/test_agent_model_live.py`` sends test prompts to the team's Hugging Face
-OpenAI-compatible endpoint using ``unsloth/Qwen3.8-27B-GGUF``. Set ``HF_TOKEN``
-in the environment before running the test suite; do not put the token in the
-repository. These tests require network access and a running, authorized
-endpoint, and may incur inference costs. They fail if the token is missing.
+OpenAI-compatible endpoint using ``unsloth/Qwen3.8-27B-GGUF``. The test is
+opt-in. Set ``HF_TOKEN`` in the environment; do not put the token in the
+repository. It requires network access and a running, authorized endpoint and
+may incur inference costs. An explicitly enabled test fails if the token is
+missing.
 
 .. code-block:: shell
 
-   pipenv run python -m pytest tests/test_agent_model_live.py
+   WORKSHOP_AGENT_MODEL_LIVE=1 pipenv run python -m pytest \\
+     tests/test_agent_model_live.py
 
 MCP servers
 -----------

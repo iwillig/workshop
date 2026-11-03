@@ -192,6 +192,38 @@ def _load_v2(name):
     )
 
 
+def _sum_usage(reports):
+    """Sum only metrics reported for every model call or case."""
+    totals = {}
+    for key in ("input", "output"):
+        values = [
+            report.get(key) if isinstance(report, dict) else None
+            for report in reports
+        ]
+        totals[key] = (
+            sum(values)
+            if values
+            and all(type(value) is int and value >= 0 for value in values)
+            else None
+        )
+    return totals
+
+
+def _agent_usage(agent):
+    calls = getattr(agent, "n_calls", None)
+    messages = getattr(agent, "messages", ())
+    reports = []
+    for message in messages:
+        if not isinstance(message, dict):
+            continue
+        extra = message.get("extra")
+        if isinstance(extra, dict) and "usage" in extra:
+            reports.append(extra["usage"])
+    if type(calls) is not int or calls < 1 or len(reports) != calls:
+        return {"input": None, "output": None}
+    return _sum_usage(reports)
+
+
 def execute_agent(task, workspace, config):
     """Run an existing agent locally; limits are cooperative, not isolation."""
     from workshop.agent_config import build_agent
@@ -215,7 +247,8 @@ def execute_agent(task, workspace, config):
         import click
 
         agent.progress_sink = lambda text: click.echo(text, err=True)
-    return agent.run(task)
+    result = agent.run(task)
+    return result | {"benchmark_usage": _agent_usage(agent)}
 
 
 def run_suite(
@@ -230,11 +263,12 @@ def run_suite(
     suite = load_suite(name)
     storage = PrivateStorage(storage_root)
     executor = execute or execute_agent
-    results, details = [], []
+    results, details, usage_reports = [], [], []
     for entry in suite.cases:
         started = time.monotonic()
         diagnostic = None
         findings = None
+        case_usage = None
         outcome = Outcome.INFRASTRUCTURE_ERROR
         try:
             with tempfile.TemporaryDirectory(
@@ -247,6 +281,7 @@ def run_suite(
                     destination.parent.mkdir(parents=True, exist_ok=True)
                     shutil.copyfile(entry.fixture / relative, destination)
                 agent_result = executor(entry.case.task, workspace, config)
+                case_usage = agent_result.get("benchmark_usage")
                 if agent_result.get("cleanup_warning"):
                     diagnostic = str(agent_result["cleanup_warning"])
                 elif agent_result.get("exit_status") != "Submitted":
@@ -283,6 +318,7 @@ def run_suite(
         except Exception as exc:
             outcome = Outcome.INFRASTRUCTURE_ERROR
             diagnostic = f"{type(exc).__name__}: {exc}"
+        usage_reports.append(case_usage)
         results.append(
             CaseResult(
                 case_id=entry.case.id,
@@ -301,7 +337,10 @@ def run_suite(
                 else None,
             }
         )
+    total_usage = _sum_usage(usage_reports)
     run = RunResult(
+        input_tokens=total_usage["input"],
+        output_tokens=total_usage["output"],
         id="run-" + uuid.uuid4().hex,
         suite_id=suite.suite.id,
         suite_version=suite.suite.version,

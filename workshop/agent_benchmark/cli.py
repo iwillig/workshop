@@ -53,6 +53,13 @@ def run_command(ctx, suite, config, agent_name, storage, local):
     except (ValueError, OSError) as exc:
         raise click.ClickException(str(exc)) from exc
     click.echo(json.dumps(report, indent=2))
+    if report["counts"]["infrastructure_error"]:
+        click.echo(
+            "Benchmark completed with infrastructure errors; "
+            "the report was saved.",
+            err=True,
+        )
+        raise click.exceptions.Exit(1)
 
 
 @benchmark_commands.command("report")

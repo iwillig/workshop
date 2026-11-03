@@ -1,9 +1,9 @@
 # Local benchmark validation and expansion plan
 
-**Status:** Implementation is in progress. The review CLI smoke test reached
-`hf-glm` but received HTTP 401, so successful live review remains blocked on
-provider authentication. The v2 suites and private review records have been
-implemented; see the checklist for verification status.
+**Status:** The local benchmark implementation and both live smoke runs are
+complete. The `hf-glm` review run identified the expected defect and received
+a separate human pass decision. A later `hf-glm` coding run passed the
+deterministic check. The v2 suites and private review records are implemented.
 
 ## Scope and safety
 
@@ -20,12 +20,12 @@ or automatic prompt changes. The stronger sandbox remains separate work.
 ## 1. Run the review smoke test
 
 - [x] Run `review-v1` through the CLI using `examples/review-agent.yaml` and an
-  explicit private storage directory. The provider returned HTTP 401; the
-  runner saved an infrastructure-error result.
-- [ ] Inspect the saved report and confirm the outcome is pending human review.
-- [ ] Compare the agent's finding with the expected empty-input defect.
-- [ ] Resolve provider authentication and rerun. Treat this infrastructure
-  error separately from a model's failure to find the defect.
+  explicit private storage directory. Earlier attempts returned HTTP 401 and
+  were recorded as infrastructure errors; a later run succeeded.
+- [x] Inspect the saved report and confirm the outcome is pending human review.
+- [x] Compare the agent's finding with the expected empty-input defect.
+- [x] Rerun after provider authentication was corrected. The successful run
+  used `hf-glm`; earlier 401s were infrastructure errors, not review failures.
 
 The configured `hf-glm` model may send fixture content to a Hugging Face
 provider. Running this test can incur provider costs and executes the configured
@@ -37,10 +37,11 @@ agent locally.
   `tests/test_local_benchmark_live.py`.
 - [x] Require an explicitly selected named coding agent and configuration; do
   not silently select a provider.
-- [ ] Run the coding fixture and verify that the report is stored and the
-  outcome reflects the deterministic check.
+- [x] Run the coding fixture with a temporary named `hf-glm` coding agent and
+  verify that its private report records a pass from the deterministic check.
 - [x] Add fake-agent coverage for both passing and failing coding results.
-- [x] Keep live model tests out of the default test run.
+- [x] Keep the live benchmark and model tests out of the default test run;
+  each requires explicit opt-in.
 
 A model's incorrect solution is a benchmark failure, not automatically a runner
 failure. Live execution must be explicitly enabled and can incur provider costs.
@@ -75,17 +76,20 @@ other same-user files.
   report display, and preservation of the original result.
 - [x] Verify that pending and inconclusive cases are not counted as passes.
 
-Human decisions are report data, not automatic judgments or CI gates.
+A live review judgment was recorded separately from the original pending
+result. Human decisions are report data, not automatic judgments or CI gates.
 
 ## Delivery and verification
 
-- [ ] Complete the review smoke test and address integration failures.
+- [x] Complete the review smoke test; earlier authentication failures are
+  distinguished from review failures.
 - [x] Add coding smoke-test support and fake-agent coverage.
 - [x] Add multi-file fixture support and expanded suites.
 - [x] Add human-decision records and report display.
 - [x] Update usage and safety documentation.
 - [x] Run Ruff, the applicable test suite, and the documentation build. The
-  default suite passed; opt-in live and sandbox diagnostics were skipped.
+  deterministic suite passed with the separate live model test and
+  environment-specific test excluded; opt-in diagnostics were skipped.
 
 Use red/green TDD for implementation slices. Run live tests only when explicitly
 enabled and document which provider and agent were used.
