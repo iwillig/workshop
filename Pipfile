@@ -36,6 +36,7 @@ pytest = "*"
 pytest-cov = "*"
 hegeltest = "*"
 ruff = "==0.16.10"
+pandoc-plantuml-filter = "*"
 
 [requires]
 python_version = "3.15"
