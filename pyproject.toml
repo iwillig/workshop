@@ -31,3 +31,4 @@ include = ["workshop*", "research_context*"]
 
 [tool.setuptools.package-data]
 "workshop.agent_config" = ["configs/*.yaml"]
+"workshop.agent_benchmark" = ["fixtures/*/*.py", "fixtures/*/*.txt", "fixtures/*.json", "checks/*"]

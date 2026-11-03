@@ -1,13 +1,82 @@
 Agent evaluation foundations
 ============================
 
-The benchmark and evaluation packages contain versioned data contracts and
-private JSON storage and read-only runtime diagnostics. They do **not** run
-benchmarks, judge reviews, import
-trajectories, isolate agents, or provide a CLI. The next phases are described
-in ``docs/agent-evaluation-plan.md``. The proposed threat model and isolation
-contract are in :doc:`agent-evaluation-sandbox`. A standalone rootless crun
-alternative is proposed in ``docs/agent-evaluation-crun-design.md``.
+The benchmark and evaluation packages provide a small report-only local
+benchmark, versioned contracts, private JSON storage, and runtime diagnostics.
+They do not judge reviews, import trajectories, or isolate agents. The local
+benchmark does not depend on the proposed isolation boundary in
+:doc:`agent-evaluation-sandbox`; that boundary remains unimplemented and
+unreviewed. See ``docs/agent-evaluation-plan.md`` for the broader proposal.
+
+Local benchmark
+---------------
+
+**Only use trusted agents, configurations, and fixtures.** Agent tools and
+coding checks execute with your user permissions. The temporary working
+directory is not a sandbox; agents may access other files, credentials, the
+network, and configured MCP servers. A remote model may receive fixture data.
+Private records can contain sensitive output and are not automatically redacted.
+
+Select a named agent and one of the bundled ``coding-v1``, ``review-v1``,
+``coding-v2``, or ``review-v2`` suites. Each v2 suite has three cases; the v1
+suite identities and hashes are preserved. The explicit storage directory must
+be owner-only and its parent must already exist. For example:
+
+.. code-block:: bash
+
+   workshop benchmark run --suite review-v1 --config examples/review-agent.yaml \\
+     --agent reviewer --storage "$HOME/private-benchmarks" --local
+   workshop benchmark report RUN_ID --storage "$HOME/private-benchmarks"
+
+Check the named agent in your configuration before running. ``--local`` is an
+explicit acknowledgement of host execution, not a security feature. The runner
+prints progress to stderr and the JSON report to stdout. It validates the
+bundled fixture and scoring hashes and uses a fresh temporary copy for each
+case. Normal and handled-error cleanup is best effort; a crash or force-stop
+can leave files or processes behind. Existing step, wall-time, and command
+limits apply, but wall time is checked between agent steps and cannot forcibly
+interrupt a blocked model call or remote work.
+
+Coding cases execute the fixed check locally and report pass or fail. Review
+findings and the expected defect are saved in the private report with a
+``pending_human_review`` outcome; a person must judge the findings. Agent and
+check execution failures are infrastructure errors. Reports retain separate
+outcome counts, and unavailable usage and cost remain null. No quality gate,
+trace capture, or automatic human judgment is provided. Human judgments can be
+recorded separately without changing the original run:
+
+.. code-block:: bash
+
+   workshop benchmark review RUN_ID --case CASE_ID --decision pass \\
+     --reviewer "Reviewer name" --rationale "Defect identified accurately" \\
+     --storage "$HOME/private-benchmarks"
+   workshop benchmark report RUN_ID --storage "$HOME/private-benchmarks"
+
+Decisions can be ``pass``, ``fail``, or ``inconclusive``. Each is stored as a
+separate private record linked to the run, case version, and suite hash. Reports
+show the full judgment history and separate counts based on the most recent
+recorded decision per case; cases without decisions remain pending. The original
+outcomes and counts remain unchanged. Reviewer identity is self-declared; these
+local records are not authenticated or tamper-proof.
+
+An optional live smoke test runs the review suite using a configured agent;
+this can contact a remote provider and execute configured tools:
+
+.. code-block:: bash
+
+   WORKSHOP_BENCHMARK_LIVE=1 \\
+   WORKSHOP_BENCHMARK_AGENT_CONFIG=examples/review-agent.yaml \\
+   WORKSHOP_BENCHMARK_AGENT_NAME=reviewer \\
+     pipenv run pytest tests/test_local_benchmark_live.py
+
+The coding smoke test also requires explicit opt-in and a named coding agent:
+
+.. code-block:: bash
+
+   WORKSHOP_BENCHMARK_CODING_LIVE=1 \\
+   WORKSHOP_BENCHMARK_CODING_CONFIG=/path/to/agents.yaml \\
+   WORKSHOP_BENCHMARK_CODING_AGENT=coder \\
+     pipenv run pytest tests/test_local_benchmark_live.py
 
 Contracts
 ---------
@@ -50,8 +119,9 @@ separate ``pass``, ``fail``, and ``unverified`` states.
 
 These are self-reported runtime capabilities, **not proof of enforcement**.
 The effective sandbox, broker, artifact handling, scoring, cleanup, and
-security review remain unverified. ``ready`` is deliberately always false;
-there is no execution path, override, or fallback. For example:
+security review remain unverified. Sandbox ``ready`` is deliberately always
+false; the local benchmark is a separate, explicitly unisolated mode, not a
+sandbox override or fallback. For example:
 
 .. code-block:: python
 

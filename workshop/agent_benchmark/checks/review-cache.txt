@@ -1,0 +1,1 @@
+The mutable default cache is shared across independent calls, leaking entries between them.

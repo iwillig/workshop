@@ -4,13 +4,11 @@ This checklist tracks the work from the current evaluation foundation to a
 report-only benchmark and trace-review workflow. Update it as work is completed;
 check a box only when the implementation and its verification are complete.
 
-**Safety status:** There is no benchmark runner or verified sandbox. Do not use
-the broker prototype or current Docker environment to run untrusted benchmark
-agents. The sandbox design in `docs/agent-evaluation-sandbox.rst` is proposed
-and still needs security review. `docs/agent-evaluation-plan.md` contains the
-broader design and `docs/agent-evaluation.rst` documents current APIs. The
-proposed critical path to a first benchmark is in
-`docs/agent-evaluation-completion-plan.md`.
+**Safety status:** A small report-only local runner exists for trusted agents
+and fixtures. It is not a sandbox and executes agent tools and checks with the
+user's permissions. There is no verified sandbox; do not run untrusted workloads.
+The earlier sandbox-first completion plan remains research, not a prerequisite
+for the local runner. See `docs/agent-evaluation.rst` for usage and limitations.
 
 ## Agreed boundaries
 
@@ -19,15 +17,24 @@ proposed critical path to a first benchmark is in
 - [x] Choose rootless Podman on Linux for the initial diagnostics and propose a
   standalone rootless `crun` profile after the inode investigation. Neither
   profile is approved for benchmarks or equivalent to a VM.
-- [x] Use a host-controlled model broker. Coding and review benchmarks may use
-  an explicitly selected remote provider with sanitized fixtures; trace review
-  must use a locally controlled model and have no external network or MCP access.
+- [ ] A host-controlled model broker remains proposed for an isolated runner.
+  The local runner uses the configured model directly and may use remote or MCP
+  services. Trace review is not implemented; its local-only boundary remains
+  part of the separate proposal.
 - [x] Keep benchmark results report-only; require human review for review
   findings and proposal promotion. Do not add tool-call approvals or automatic
   prompt, skill, or suite changes.
-- [x] Require distinct task-failure, pending-review, and infrastructure-error
-  outcomes and fail-closed isolation. Outcome contracts exist; the runner and
-  enforcement are not implemented.
+- [x] Keep task-failure, pending-review, and infrastructure-error outcomes
+  distinct in local reports. Fail-closed isolation remains unimplemented.
+
+## Local benchmark (trusted development only)
+
+- [x] Add one versioned coding suite and one review suite with verified fixture
+  and scoring hashes, local agent execution, and explicit acknowledgement.
+- [x] Store private JSON reports with deterministic coding results and review
+  findings pending human judgment. A fake-agent CLI test exercises the adapter;
+  a real model run is optional and provider-dependent.
+- [ ] Add richer cases, trace capture, recorded human judgments, and comparisons.
 
 ## Current foundation
 

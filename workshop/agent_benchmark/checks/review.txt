@@ -1,0 +1,1 @@
+The average function divides by zero for an empty input, contrary to its docstring.

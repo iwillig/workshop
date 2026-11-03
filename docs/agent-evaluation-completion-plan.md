@@ -1,6 +1,9 @@
 # Plan to finish the evaluation foundation and start benchmarking
 
-**Status: proposed for review; not authorization to run benchmark agents.**
+**Status: sandbox-first proposal, deferred for local development.** A separate
+report-only local runner now supports trusted fixtures without isolation; see
+`docs/agent-evaluation.rst`. This plan still describes proposed work for a
+stronger boundary and does not authorize untrusted benchmark execution.
 This plan narrows `agent-evaluation-implementation.md` to the first safe,
 report-only benchmark. The detailed threat model and proposed standalone OCI
 controller are in `agent-evaluation-sandbox.rst` and

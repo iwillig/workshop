@@ -1,0 +1,50 @@
+[
+  {
+    "id": "normalize-text",
+    "role": "coding",
+    "fixture": "coding-normalize",
+    "task": "Implement normalize(value) in text.py as described in README.txt.",
+    "files": {
+      "README.txt": "1f779b33c5480f705ab3bb90d22bcc0b00dd4f0d1ad526f44ed0d4f5a8325f0b",
+      "text.py": "3239093c1523e262636b200a36156ac10c02530bd51d0a430d778b58a35a4c25"
+    },
+    "check": "coding-normalize.py",
+    "check_sha256": "829b69052f14a379446cb646fc0da534e028f62a4119486f7e901c6a3c6b4cd3"
+  },
+  {
+    "id": "clamp-range",
+    "role": "coding",
+    "fixture": "coding-clamp",
+    "task": "Implement clamp in numbers.py as described in README.txt.",
+    "files": {
+      "README.txt": "a2e508978fc67b257afb7d4dd61a4bd58c047913162002dcd03b8ffe0d6de5ae",
+      "numbers.py": "df06f971cd2115b656b17ecd9eba0aa9af71717ab18a77a72248cb5e5485f945"
+    },
+    "check": "coding-clamp.py",
+    "check_sha256": "0a5a2f47ab157f795ef66dce26de1d68eeabf4ef9f4c76fe92c8e2c9d6cea710"
+  },
+  {
+    "id": "discount-percent",
+    "role": "review",
+    "fixture": "review-discount",
+    "task": "Review price.py using README.txt as context. Report bugs with locations.",
+    "files": {
+      "README.txt": "d591bf2a1fdb364226f232700fabd28cbe34a78a9c940dad21e40c870f388d60",
+      "price.py": "0d5cfd9d0f5d904fcd6d3c7f52036cec70059f4ef37ecc23fbb9951d5dfdf5f0"
+    },
+    "check": "review-discount.txt",
+    "check_sha256": "5816d45dc8ddf6db7f0c9acb7f7c1e9f5391f0effa0d4ee2efee16f7b452f1ab"
+  },
+  {
+    "id": "shared-cache",
+    "role": "review",
+    "fixture": "review-cache",
+    "task": "Review cache.py using README.txt as context. Report bugs with locations.",
+    "files": {
+      "README.txt": "a24503d2f653fe353a74db0c43e7c862757936aa42c5f003ac8bbf1ebd65b0bf",
+      "cache.py": "edf4d84e181589d4129fe72a6547f69ad08c52142edf133d2163ae26f25b756a"
+    },
+    "check": "review-cache.txt",
+    "check_sha256": "4afb1a047937522f3e822e6591e46eead05d17e7b1f86727b3d6fbfc8ab27fe3"
+  }
+]

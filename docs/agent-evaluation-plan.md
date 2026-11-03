@@ -1,6 +1,10 @@
 # Agent evaluation and learning loop: implementation plan
 
-**Status: proposed for review.** This document is an implementation plan, not a description of implemented benchmark or evaluation features.
+**Status: broader proposal, partly superseded.** A report-only local runner
+for trusted fixtures is available; see `docs/agent-evaluation.rst`. The user
+chose to defer the sandbox-first requirement for local development. The
+isolation and trace-review requirements below remain proposals for untrusted
+execution and later work, not descriptions of the local runner.
 
 ## Goal
 
