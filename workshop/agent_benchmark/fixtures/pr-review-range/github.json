@@ -1,0 +1,33 @@
+{
+  "/repos/loopback/example/pulls/7": {
+    "number": 7,
+    "title": "Fix page counting",
+    "body": "Adjusts page_count for the new pagination limits.",
+    "html_url": "https://github.com/loopback/example/pull/7",
+    "state": "open",
+    "base": {"sha": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", "ref": "main", "repo": {"full_name": "loopback/example"}},
+    "head": {"sha": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb", "ref": "fix-pages", "repo": {"full_name": "loopback/example"}},
+    "changed_files": 1
+  },
+  "/repos/loopback/example/pulls/7/files?per_page=5&page=1": [
+    {
+      "filename": "ranges.py",
+      "status": "modified",
+      "additions": 2,
+      "deletions": 1,
+      "patch": "@@ -9,7 +9,8 @@ def page_count(items, size):\n-    return len(items) // size\n+    return (len(items) - 1) // size\n"
+    }
+  ],
+  "/repos/loopback/example/contents/ranges.py?ref=bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb": {
+    "type": "file",
+    "encoding": "base64",
+    "content": "ZGVmIHBhZ2VfY291bnQoaXRlbXMsIHNpemUpOgogICAgIiwiUmV0dXJuIHRoZSBudW1iZXIgb2YgcGFnZXMgbmVlZGVkIHRvIHNob3cgYWxsIGl0ZW1zLiIKICAgIHJldHVybiAobGVuKGl0ZW1zKSAtIDEpIC8vIHNpemUK",
+    "size": 128
+  },
+  "/repos/loopback/example/contents/ranges.py?ref=aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa": {
+    "type": "file",
+    "encoding": "base64",
+    "content": "ZGVmIHBhZ2VfY291bnQoaXRlbXMsIHNpemUpOgogICAgIiwiUmV0dXJuIHRoZSBudW1iZXIgb2YgcGFnZXMgbmVlZGVkIHRvIHNob3cgYWxsIGl0ZW1zLiIKICAgIHJldHVybiBsZW4oaXRlbXMpIC8vIHNpemUK",
+    "size": 120
+  }
+}

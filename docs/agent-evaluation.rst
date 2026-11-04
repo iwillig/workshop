@@ -21,7 +21,8 @@ Private records can contain sensitive output and are not automatically redacted.
 Select a named agent and one of the bundled suites: ``coding-v1`` and
 ``review-v1`` have one starter case each, the v2 suites have three cases, and
 the v3 suites have six cases covering different failure modes, including
-multi-file coding fixtures. Earlier suite identities and hashes are preserved.
+multi-file coding fixtures. The ``pr-review-v4`` suite reviews synthetic pull
+requests. Earlier suite identities and hashes are preserved.
 The explicit storage directory must be owner-only and its parent must already
 exist. For example:
 
@@ -30,6 +31,23 @@ exist. For example:
    workshop benchmark run --suite review-v1 --config examples/review-agent.yaml \\
      --agent reviewer --storage "$HOME/private-benchmarks" --local
    workshop benchmark report RUN_ID --storage "$HOME/private-benchmarks"
+
+PR-review cases
+~~~~~~~~~~~~~~~
+
+The ``pr-review-v4`` suite evaluates the :doc:`PR review agent <pr-review>`
+against synthetic pull requests. Each case pins a fixture of canned GitHub API
+responses by SHA-256. During the run, the benchmark starts a disposable HTTP
+server bound to ``127.0.0.1``, points the GitHub tools at it through the
+``WORKSHOP_GITHUB_API_BASE`` environment variable, and restores the variable
+afterwards. The service accepts loopback overrides only, so a configured agent
+cannot silently redirect GitHub traffic elsewhere through this seam. One case
+contains a planted defect; another is a benign rename with no findings. Both
+produce ``pending_human_review`` outcomes with the agent's findings and the
+expected findings in the report details, and require a human judgment like any
+review case. The loopback server is trusted-local test infrastructure; it is
+not a network boundary, and a real run against ``api.github.com`` still sends
+content to Hugging Face and its providers.
 
 Check the named agent in your configuration before running. ``--local`` is an
 explicit acknowledgement of host execution, not a security feature. The runner

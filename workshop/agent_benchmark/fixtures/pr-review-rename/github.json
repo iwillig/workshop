@@ -1,0 +1,33 @@
+{
+  "/repos/loopback/example/pulls/9": {
+    "number": 9,
+    "title": "Rename paging module",
+    "body": "Renames pages.py to paging.py without changing behavior.",
+    "html_url": "https://github.com/loopback/example/pull/9",
+    "state": "open",
+    "base": {"sha": "cccccccccccccccccccccccccccccccccccccccc", "ref": "main", "repo": {"full_name": "loopback/example"}},
+    "head": {"sha": "dddddddddddddddddddddddddddddddddddddddd", "ref": "rename", "repo": {"full_name": "loopback/example"}},
+    "changed_files": 1
+  },
+  "/repos/loopback/example/pulls/9/files?per_page=5&page=1": [
+    {
+      "filename": "paging.py",
+      "previous_filename": "pages.py",
+      "status": "renamed",
+      "additions": 0,
+      "deletions": 0
+    }
+  ],
+  "/repos/loopback/example/contents/paging.py?ref=dddddddddddddddddddddddddddddddddddddddd": {
+    "type": "file",
+    "encoding": "base64",
+    "content": "ZGVmIHBhZ2VfY291bnQoaXRlbXMsIHNpemUpOgogICAgIiwiUmV0dXJuIHRoZSBudW1iZXIgb2YgcGFnZXMgbmVlZGVkIHRvIHNob3cgYWxsIGl0ZW1zLiIKICAgIHJldHVybiAtKC1sZW4oaXRlbXMpIC8vIHNpemUpCg==",
+    "size": 120
+  },
+  "/repos/loopback/example/contents/pages.py?ref=cccccccccccccccccccccccccccccccccccccccc": {
+    "type": "file",
+    "encoding": "base64",
+    "content": "ZGVmIHBhZ2VfY291bnQoaXRlbXMsIHNpemUpOgogICAgIiwiUmV0dXJuIHRoZSBudW1iZXIgb2YgcGFnZXMgbmVlZGVkIHRvIHNob3cgYWxsIGl0ZW1zLiIKICAgIHJldHVybiAtKC1sZW4oaXRlbXMpIC8vIHNpemUpCg==",
+    "size": 120
+  }
+}

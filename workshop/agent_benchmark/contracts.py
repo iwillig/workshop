@@ -25,7 +25,7 @@ class CaseRef(Contract):
 class Case(Contract):
     id: Identifier
     version: Version
-    role: Literal["coding", "review"]
+    role: Literal["coding", "review", "pr-review"]
     task: NonEmpty
     fixture: Identifier
     fixture_sha256: Digest
@@ -37,7 +37,7 @@ class Case(Contract):
 class Suite(Contract):
     id: Identifier
     version: Version
-    role: Literal["coding", "review"]
+    role: Literal["coding", "review", "pr-review"]
     cases: list[CaseRef] = Field(min_length=1)
 
     @model_validator(mode="after")

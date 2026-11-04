@@ -3,6 +3,7 @@
 import copy
 import hashlib
 import json
+import os
 import shutil
 import subprocess
 import sys
@@ -23,12 +24,13 @@ from workshop.agent_eval.storage import PrivateStorage
 from workshop.agent_eval.trace import write_trace
 
 _ROOT = Path(__file__).parent
-_VERSION_FILES = {2: "v2.json", 3: "v3.json"}
+_VERSION_FILES = {2: "v2.json", 3: "v3.json", 4: "v4.json"}
 _EXPECTED_CASES = {
     (2, "coding"): 3,
     (2, "review"): 3,
     (3, "coding"): 6,
     (3, "review"): 6,
+    (4, "pr-review"): 2,
 }
 _DEFINITIONS = {
     "coding-v1": {
@@ -55,6 +57,24 @@ _DEFINITIONS = {
             "ae4ae22c87b289556e1384b821be9d1dc854de6291d8c40c8c5778951a2b692a"
         ),
     },
+    "pr-review-v1": {
+        "role": "pr-review",
+        "id": "range-off-by-one",
+        "task": (
+            "Review loopback/example pull request 7 for bugs introduced by "
+            "the change. Report findings with file paths and lines."
+        ),
+        "fixture": "pr-review-range",
+        "files": {
+            "github.json": (
+                "7bcb5d29e586606e9d139e32931a12405472ff3e58a2a8bc6f1bf22e26345c20"
+            )
+        },
+        "check": "pr-review-range.txt",
+        "check_hash": (
+            "cd1c48bcaefe0c25af8521202aeaa2485b7b0f3caf8478c22eb555d449097c25"
+        ),
+    },
 }
 
 
@@ -77,6 +97,45 @@ def _digest(path):
     return hashlib.sha256(path.read_bytes()).hexdigest()
 
 
+def _files_based_definition(definition):
+    """Validate a files-mapped fixture definition and describe its case."""
+    fixture_name = definition["fixture"]
+    if Path(fixture_name).name != fixture_name:
+        raise ValueError("Invalid fixture name")
+    fixture = _ROOT / "fixtures" / fixture_name
+    files = definition["files"]
+    for relative, digest in files.items():
+        path = Path(relative)
+        if path.is_absolute() or ".." in path.parts or not path.parts:
+            raise ValueError("Invalid fixture path")
+        if _digest(fixture / path) != digest:
+            raise ValueError(f"Fixture hash mismatch for {relative}")
+    check_name = definition["check"]
+    if Path(check_name).name != check_name:
+        raise ValueError("Invalid scoring path")
+    check = _ROOT / "checks" / check_name
+    if _digest(check) != definition["check_hash"]:
+        raise ValueError(f"Scoring hash mismatch for {check_name}")
+    fixture_hash = hashlib.sha256(
+        json.dumps(files, sort_keys=True, separators=(",", ":")).encode()
+    ).hexdigest()
+    case = Case(
+        id=definition["id"],
+        version=1,
+        role=definition["role"],
+        task=definition["task"],
+        fixture=fixture_name,
+        fixture_sha256=fixture_hash,
+        scoring_method="human-review",
+        scoring_version=1,
+    )
+    return LocalCase(case, fixture, check, ()), {
+        "case": case.model_dump(),
+        "files": files,
+        "check_sha256": definition["check_hash"],
+    }
+
+
 def load_suite(name):
     """Load and verify one of the fixed, versioned development suites."""
     if name.endswith(tuple(f"-v{n}" for n in _VERSION_FILES)):
@@ -84,6 +143,22 @@ def load_suite(name):
     if name not in _DEFINITIONS:
         raise ValueError(f"Unknown suite: {name}")
     definition = _DEFINITIONS[name]
+    if "files" in definition:
+        entry, case_fingerprint = _files_based_definition(definition)
+        suite = Suite(
+            id=name,
+            version=1,
+            role=definition["role"],
+            cases=[CaseRef(id=entry.case.id, version=entry.case.version)],
+        )
+        fingerprint = json.dumps(
+            {"suite": suite.model_dump(), "cases": [case_fingerprint]},
+            sort_keys=True,
+            separators=(",", ":"),
+        ).encode()
+        return LocalSuite(
+            suite, (entry,), hashlib.sha256(fingerprint).hexdigest()
+        )
     role = definition["role"]
     fixture = _ROOT / "fixtures" / role
     check = (
@@ -128,7 +203,10 @@ def load_suite(name):
 def _load_versioned(name):
     role, version = name.rsplit("-v", 1)
     version = int(version)
-    if role not in {"coding", "review"} or version not in _VERSION_FILES:
+    if (
+        role not in {"coding", "review", "pr-review"}
+        or version not in _VERSION_FILES
+    ):
         raise ValueError(f"Unknown suite: {name}")
     original = load_suite(role + "-v1")
     cases = list(original.cases)
@@ -210,6 +288,32 @@ def _versioned_case(role, definition, cases, fingerprints):
         }
     )
     return cases, fingerprints
+
+
+def _run_pr_review_or_local(entry, executor, workspace, config):
+    """Run a case; PR-review cases use a loopback synthetic API server."""
+    if entry.case.role != "pr-review":
+        return executor(entry.case.task, workspace, config)
+    from workshop.agent_benchmark.pr_fixture import FixtureServer
+
+    responses = json.loads(
+        (entry.fixture / "github.json").read_text(encoding="utf-8")
+    )
+    if not isinstance(responses, dict) or not all(
+        isinstance(key, str) and isinstance(value, (dict, list))
+        for key, value in responses.items()
+    ):
+        raise ValueError("PR fixture must map request paths to JSON data")
+    previous = os.environ.get("WORKSHOP_GITHUB_API_BASE")
+    with FixtureServer(responses) as server:
+        os.environ["WORKSHOP_GITHUB_API_BASE"] = server.base_url
+        try:
+            return executor(entry.case.task, workspace, config)
+        finally:
+            if previous is None:
+                os.environ.pop("WORKSHOP_GITHUB_API_BASE", None)
+            else:
+                os.environ["WORKSHOP_GITHUB_API_BASE"] = previous
 
 
 def _sum_usage(reports):
@@ -317,11 +421,14 @@ def run_suite(
             ) as tmp:
                 workspace = Path(tmp) / "workspace"
                 workspace.mkdir()
-                for relative in entry.files:
-                    destination = workspace / relative
-                    destination.parent.mkdir(parents=True, exist_ok=True)
-                    shutil.copyfile(entry.fixture / relative, destination)
-                agent_result = executor(entry.case.task, workspace, config)
+                if entry.case.role != "pr-review":
+                    for relative in entry.files:
+                        destination = workspace / relative
+                        destination.parent.mkdir(parents=True, exist_ok=True)
+                        shutil.copyfile(entry.fixture / relative, destination)
+                agent_result = _run_pr_review_or_local(
+                    entry, executor, workspace, config
+                )
                 case_usage = agent_result.get("benchmark_usage")
                 if agent_result.get("cleanup_warning"):
                     diagnostic = str(agent_result["cleanup_warning"])
@@ -329,7 +436,7 @@ def run_suite(
                     diagnostic = "Agent did not submit: " + str(
                         agent_result.get("exit_status", "unknown")
                     )
-                elif entry.case.role == "review":
+                elif entry.case.role in {"review", "pr-review"}:
                     findings = str(agent_result.get("submission") or "")
                     outcome = Outcome.PENDING_HUMAN_REVIEW
                 else:
@@ -397,7 +504,7 @@ def run_suite(
                 "case_id": entry.case.id,
                 "findings": findings,
                 "expected_findings": entry.check.read_text()
-                if entry.case.role == "review"
+                if entry.case.role in {"review", "pr-review"}
                 else None,
             }
         )

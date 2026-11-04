@@ -1,0 +1,1 @@
+page_count in ranges.py computes (len(items) - 1) // size, one page too few when the item count is an exact multiple of the page size, and a negative count for empty input; the head version is defective while the base version computed len(items) // size.

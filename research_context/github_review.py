@@ -56,6 +56,21 @@ def _clip(value, limit):
     return text[:limit], len(text) > limit
 
 
+DEFAULT_API_BASE = "https://api.github.com"
+
+
+def _api_base():
+    """Allow a loopback-only override for trusted synthetic fixtures."""
+    override = os.environ.get("WORKSHOP_GITHUB_API_BASE", "").strip()
+    if not override:
+        return DEFAULT_API_BASE
+    if not re.fullmatch(r"http://127\.0\.0\.1:\d+", override):
+        raise ValueError(
+            "WORKSHOP_GITHUB_API_BASE must be a loopback http URL"
+        )
+    return override
+
+
 class GitHubReviewService:
     """Read small PR pages and commit-pinned source from api.github.com."""
 
@@ -69,7 +84,7 @@ class GitHubReviewService:
             if token:
                 headers["Authorization"] = f"Bearer {token}"
             client = httpx.Client(
-                base_url="https://api.github.com",
+                base_url=_api_base(),
                 headers=headers,
                 timeout=30,
                 follow_redirects=False,

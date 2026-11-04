@@ -1,0 +1,13 @@
+[
+  {
+    "role": "pr-review",
+    "id": "benign-rename",
+    "fixture": "pr-review-rename",
+    "task": "Review loopback/example pull request 9 for bugs introduced by the change. Report findings with file paths and lines.",
+    "files": {
+      "github.json": "8c31c92924f1d0b80e7101f061fe627b83cd0fa87826930db88b1c7fab042c70"
+    },
+    "check": "pr-review-rename.txt",
+    "check_sha256": "10cb8de8e67abe13dac4b5469df5aa087b4a3450cdceff4281580df0a11988f8"
+  }
+]
