@@ -397,13 +397,125 @@ underlying command directly:
 
 The example uses the ``hf-glm`` model ID, registered against Hugging Face's
 shared Inference Providers router (``https://router.huggingface.co/v1``) serving
-``zai-org/GLM-5.3-Flash``. Register an extra OpenAI model with ``llm`` using
-that base URL and your Hugging Face key, set ``supports_tools: true``, and pass
-``--model`` with another registered tool-capable model if you prefer. Hugging
+``zai-org/GLM-5.3-Flash``. See `Hugging Face GLM models`_ for account, token,
+and registration steps, including the full ``zai-org/GLM-5.3`` model. Hugging
 Face may route requests to a third-party provider, so review content, including
 read file contents, is sent there. The provider must be reachable and may
 charge for use. GLM-5.3-Flash defaults to maximum reasoning effort, so runs may
 be slower or costlier than smaller models.
+
+Hugging Face GLM models
+-----------------------
+
+The bundled example agents use Z.ai GLM models served through Hugging Face
+Inference Providers. Both model repositories exist on Hugging Face:
+``zai-org/GLM-5.3-Flash`` (MIT license, smaller and faster, multimodal) and
+``zai-org/GLM-5.3`` (full MoE model, ``license: other``). Model routing,
+availability, and pricing are controlled by Hugging Face and its providers and
+can change; check the model pages before relying on either model.
+
+Prerequisites
+~~~~~~~~~~~~~
+
+1. A Hugging Face account at ``huggingface.co``.
+2. A token with the **Make calls to Inference Providers** permission, created
+   in the account's access-token settings. Use the narrowest scope available
+   and keep the token value out of files the repository tracks.
+3. The token registered with ``llm`` once per machine:
+
+   .. code-block:: shell
+
+      pipenv run llm keys set huggingface-endpoint
+
+   Paste the token when prompted. ``llm`` stores it in its own key store; the
+   workshop reads it from there, so ``workshop agent run`` does not need the
+   token in the environment.
+
+Register the models
+~~~~~~~~~~~~~~~~~~~
+
+Add these entries to the ``llm`` extra-models file
+(``~/.config/io.datasette.llm/extra-openai-models.yaml``):
+
+.. code-block:: yaml
+
+   - model_id: hf-glm-flash
+     model_name: zai-org/GLM-5.3-Flash
+     api_base: https://router.huggingface.co/v1
+     api_key_name: huggingface-endpoint
+     supports_tools: true
+   - model_id: hf-glm
+     model_name: zai-org/GLM-5.3
+     api_base: https://router.huggingface.co/v1
+     api_key_name: huggingface-endpoint
+     supports_tools: true
+
+``model_id`` is the name used in agent YAML files and ``--model``.
+``model_name`` is the Hugging Face repository ID sent to the router.
+``supports_tools: true`` is required for native tool calls; both entries
+include it because the agents use tools. The bundled example configuration
+ships ``hf-glm`` pointing at ``zai-org/GLM-5.3-Flash``; rename or add the
+full-model entry as shown if you want both.
+
+Verify the setup
+~~~~~~~~~~~~~~~~
+
+.. code-block:: shell
+
+   pipenv run llm models list
+   pipenv run llm -m hf-glm-flash 'Reply with OK only.'
+
+The second command contacts Hugging Face, may route to a third-party provider,
+and may charge your account. An HTTP 401 usually means the token is expired,
+revoked, or lacks the Inference Providers permission; recreate the token and
+repeat ``llm keys set huggingface-endpoint``. Do not paste token values into
+issue reports or logs.
+
+Use a model in an agent
+~~~~~~~~~~~~~~~~~~~~~~~
+
+Agents select the model by ID and require the native protocol for tools:
+
+.. code-block:: yaml
+
+   agents:
+     reviewer:
+       model:
+         model_name: hf-glm-flash
+         protocol: native
+         retry_attempts: 1
+
+Override one run without editing YAML:
+
+.. code-block:: shell
+
+   pipenv run workshop agent run --config examples/pr-review-agent.yaml \
+     --agent pr-reviewer --model hf-glm --task 'Review o/r pull request 1'
+
+Choosing between the models
+~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+- **GLM-5.3-Flash** is the default in the examples: smaller, faster, MIT
+  licensed, and cheaper to run. It defaults to maximum reasoning effort, which
+  makes runs slower and more expensive than other small models.
+- **GLM-5.3** is the full model and may produce stronger review quality on
+  hard tasks, at higher cost and latency. Router availability for it is not
+  guaranteed; if requests fail or the model is unavailable, verify the model
+  page and provider routing, or serve it yourself from a dedicated Hugging
+  Face Inference Endpoint and register that endpoint URL as ``api_base`` the
+  same way (the ``hf-qwen`` entry in the bundled configuration shows this
+  pattern for another model).
+
+Privacy and cost
+~~~~~~~~~~~~~~~~
+
+The router may send requests to third-party providers, so any content an agent
+reads or produces, including workspace files, PR content, and tool results, is
+sent to Hugging Face and possibly another provider. Use only repositories and
+data approved for that disclosure. Runs consume quota or paid credits; token
+usage is shown per call and per run where the provider reports it. The model,
+not the workshop CLI, decides which files or tools to request, and prompt
+instructions are not a security boundary.
 
 Run from the repository root because the example's ``cwd: .`` is relative to
 the process working directory, not the YAML file. The read tool cannot list

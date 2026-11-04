@@ -30,7 +30,9 @@ use a dotenv-aware workflow as needed.
 
 The example named agent in ``examples/pr-review-agent.yaml`` carries its own
 system prompt, native model settings, step limit, and only the three GitHub
-read tools. Run from the repository root:
+read tools. Its ``hf-glm`` model ID serves ``zai-org/GLM-5.3-Flash`` through
+Hugging Face; see :doc:`agent` for account, token, registration steps, and the
+full ``zai-org/GLM-5.3`` alternative. Run from the repository root:
 
 .. code-block:: shell
 
