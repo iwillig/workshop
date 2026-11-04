@@ -1,0 +1,1 @@
+ranges.py line 3: removing size from the numerator makes page_count one page too small for every nonempty input and returns -1 for empty input. For example, four items with size four return 0 instead of 1. The base revision handles partial and empty pages correctly.

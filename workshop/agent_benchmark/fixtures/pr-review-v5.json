@@ -1,0 +1,20 @@
+[
+  {
+    "role": "pr-review",
+    "id": "range-off-by-one-v2",
+    "fixture": "pr-review-range-v2",
+    "task": "Review loopback/example pull request 7 for bugs introduced by the change. Report findings with file paths and lines.",
+    "files": {"github.json": "2def0473ae48f463cc78c91efd2023baa7dc29a2291e9d82d4c5271c7fad098c"},
+    "check": "pr-review-range-v2.txt",
+    "check_sha256": "ce0e9f4473dad2b59af24fc5bf26193c7c3945885b58064ac167ec8b034a5d9f"
+  },
+  {
+    "role": "pr-review",
+    "id": "benign-rename-v2",
+    "fixture": "pr-review-rename-v2",
+    "task": "Review loopback/example pull request 9 for bugs introduced by the change. Report findings with file paths and lines.",
+    "files": {"github.json": "475e65c1c287679746c1790acf0f232691bbf6501c85c2a5b7ab501f09340397"},
+    "check": "pr-review-rename-v2.txt",
+    "check_sha256": "1091e489951249cf8ecda60b6d9fbae2f07c12841031e13af37f9fa3708fc90b"
+  }
+]

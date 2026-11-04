@@ -80,14 +80,18 @@ class GitHubReviewService:
                 "Accept": "application/vnd.github+json",
                 "X-GitHub-Api-Version": "2022-11-28",
             }
+            base_url = _api_base()
+            is_fixture = base_url != DEFAULT_API_BASE
             token = os.environ.get("GITHUB_TOKEN", "").strip()
-            if token:
+            if token and not is_fixture:
                 headers["Authorization"] = f"Bearer {token}"
+            options = {"trust_env": False} if is_fixture else {}
             client = httpx.Client(
-                base_url=_api_base(),
+                base_url=base_url,
                 headers=headers,
                 timeout=30,
                 follow_redirects=False,
+                **options,
             )
         self.client = client
 

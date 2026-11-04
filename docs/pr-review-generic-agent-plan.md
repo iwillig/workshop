@@ -1,10 +1,15 @@
 # Generic PR reviewer and research-context tools: implementation plan
 
-**Status: implemented (except live smoke test and benchmark fixtures).**
-Bounded read-only GitHub research tools, native ``llm`` adapters, tool
-selection, and a self-contained example reviewer exist; the dedicated PR
-command and worker were removed. See ``docs/pr-review.rst`` for current usage
-and limits.
+**Status: core workflow implemented; validation remains in progress.**
+Bounded read-only GitHub tools, native `llm` adapters, tool selection, and a
+configured reviewer exist. The dedicated PR command and worker were removed.
+The corrected synthetic `pr-review-v5` suite is available for human-judged
+runs; a real-model attempt failed authentication before review, and no live PR
+smoke test has been performed.
+The old `pr-review-v4` fixtures contain invalid Python and must not be used to
+judge quality. See `docs/pr-review.rst` and `docs/agent-evaluation.rst` for
+current usage and limits. Unchecked items below remain follow-up work or need
+additional verification.
 
 ## Objective
 
@@ -141,7 +146,7 @@ mode verification unless it is actually implemented.
 - [ ] Write failing tests that select individual GitHub tools in a named agent,
   inspect their `llm.Tool` schemas, and exercise dispatch through the real
   native agent loop with fake GitHub/model backends.
-- [ ] Define the GitHub `llm.Tool` schemas and adapters in `research_context`
+- [x] Define the GitHub `llm.Tool` schemas and adapters in `research_context`
   (or a sibling adapter module there), calling the shared service directly.
   Do not scrape CLI output or require `bash`.
 - [ ] Extend the generic tool registry/dispatch to compose workspace and
@@ -158,7 +163,7 @@ mode verification unless it is actually implemented.
 
 ### 3. Configured reviewer
 
-- [ ] Update `examples/pr-review-agent.yaml` with its own system prompt,
+- [x] Update `examples/pr-review-agent.yaml` with its own system prompt,
   native model settings, positive step limit, and only the GitHub read tools
   needed for review. Do not give the reviewer `bash`, `edit`, or MCP tools.
 - [ ] Prompt for actionable introduced defects, evidence and file/line
@@ -191,11 +196,11 @@ mode verification unless it is actually implemented.
 - [ ] Port useful tests and reusable GitHub logic from the prototype. Compare
   behavior for moved heads, bounded output, failure reporting, credentials,
   and human-readable limitations; document any intentional differences.
-- [ ] After parity, remove `workshop agent review-pr`, its dedicated collector,
+- [x] After parity, remove `workshop agent review-pr`, its dedicated collector,
   worker, obsolete tests/docs, and any supervisor changes needed only for that
   worker. Preserve unrelated changes and avoid disrupting the existing staged
   state without first reviewing it. Keep the generic agent example.
-- [ ] Update `docs/pr-review.rst`, `docs/agent.rst`, and relevant CLI guidance
+- [x] Update `docs/pr-review.rst`, `docs/agent.rst`, and relevant CLI guidance
   to describe the generic command, configured tools, and actual capabilities.
   Mark the prior prototype plan as superseded when performing migration.
 

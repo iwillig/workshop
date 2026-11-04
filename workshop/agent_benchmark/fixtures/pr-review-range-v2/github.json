@@ -1,0 +1,33 @@
+{
+  "/repos/loopback/example/pulls/7": {
+    "number": 7,
+    "title": "Adjust page counting",
+    "body": "Adjust page counting. A partial page counts as one page; size is positive.",
+    "html_url": "https://github.com/loopback/example/pull/7",
+    "state": "open",
+    "base": {"sha": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", "ref": "main", "repo": {"full_name": "loopback/example"}},
+    "head": {"sha": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb", "ref": "fix-pages", "repo": {"full_name": "loopback/example"}},
+    "changed_files": 1
+  },
+  "/repos/loopback/example/pulls/7/files?per_page=5&page=1": [
+    {
+      "filename": "ranges.py",
+      "status": "modified",
+      "additions": 1,
+      "deletions": 1,
+      "patch": "@@ -1,3 +1,3 @@\n def page_count(items, size):\n     \"\"\"Count pages, including partial pages; size is positive.\"\"\"\n-    return (len(items) + size - 1) // size\n+    return (len(items) - 1) // size\n"
+    }
+  ],
+  "/repos/loopback/example/contents/ranges.py?ref=aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa": {
+    "type": "file",
+    "encoding": "base64",
+    "content": "ZGVmIHBhZ2VfY291bnQoaXRlbXMsIHNpemUpOgogICAgIiIiQ291bnQgcGFnZXMsIGluY2x1ZGluZyBwYXJ0aWFsIHBhZ2VzOyBzaXplIGlzIHBvc2l0aXZlLiIiIgogICAgcmV0dXJuIChsZW4oaXRlbXMpICsgc2l6ZSAtIDEpIC8vIHNpemUK",
+    "size": 138
+  },
+  "/repos/loopback/example/contents/ranges.py?ref=bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb": {
+    "type": "file",
+    "encoding": "base64",
+    "content": "ZGVmIHBhZ2VfY291bnQoaXRlbXMsIHNpemUpOgogICAgIiIiQ291bnQgcGFnZXMsIGluY2x1ZGluZyBwYXJ0aWFsIHBhZ2VzOyBzaXplIGlzIHBvc2l0aXZlLiIiIgogICAgcmV0dXJuIChsZW4oaXRlbXMpIC0gMSkgLy8gc2l6ZQo=",
+    "size": 131
+  }
+}

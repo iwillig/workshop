@@ -122,7 +122,7 @@ def test_pr_review_run_serves_loopback_and_restores_env(tmp_path):
 
     before = os.environ.get("WORKSHOP_GITHUB_API_BASE")
     report = run_suite(
-        "pr-review-v4",
+        "pr-review-v5",
         {},
         "reviewer",
         tmp_path / "private",
@@ -133,8 +133,8 @@ def test_pr_review_run_serves_loopback_and_restores_env(tmp_path):
         case["case_id"]: case["outcome"] for case in report["run"]["results"]
     }
     assert outcomes == {
-        "range-off-by-one": "pending_human_review",
-        "benign-rename": "pending_human_review",
+        "range-off-by-one-v2": "pending_human_review",
+        "benign-rename-v2": "pending_human_review",
     }
     assert seen["env"] and seen["env"].startswith("http://127.0.0.1:")
     assert os.environ.get("WORKSHOP_GITHUB_API_BASE") == before
@@ -223,7 +223,7 @@ def test_pr_review_run_with_real_tools_against_loopback(tmp_path):
     models.llm.get_model = lambda _: Backend()
     try:
         report = run_suite(
-            "pr-review-v4",
+            "pr-review-v5",
             config,
             "reviewer",
             tmp_path / "private",
@@ -233,7 +233,7 @@ def test_pr_review_run_with_real_tools_against_loopback(tmp_path):
     finally:
         models.llm.get_model = original
     details = {case["case_id"]: case for case in report["details"]}
-    assert "page_count" in details["range-off-by-one"]["findings"]
-    assert details["benign-rename"]["findings"] is not None
+    assert "page_count" in details["range-off-by-one-v2"]["findings"]
+    assert details["benign-rename-v2"]["findings"] is not None
     trace = report["run"]["trace"]
     assert trace is not None and trace["format"]

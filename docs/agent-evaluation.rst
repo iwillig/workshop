@@ -21,7 +21,7 @@ Private records can contain sensitive output and are not automatically redacted.
 Select a named agent and one of the bundled suites: ``coding-v1`` and
 ``review-v1`` have one starter case each, the v2 suites have three cases, and
 the v3 suites have six cases covering different failure modes, including
-multi-file coding fixtures. The ``pr-review-v4`` suite reviews synthetic pull
+multi-file coding fixtures. The ``pr-review-v5`` suite reviews synthetic pull
 requests. Earlier suite identities and hashes are preserved.
 The explicit storage directory must be owner-only and its parent must already
 exist. For example:
@@ -35,19 +35,23 @@ exist. For example:
 PR-review cases
 ~~~~~~~~~~~~~~~
 
-The ``pr-review-v4`` suite evaluates the :doc:`PR review agent <pr-review>`
+The ``pr-review-v5`` suite evaluates the :doc:`PR review agent <pr-review>`
 against synthetic pull requests. Each case pins a fixture of canned GitHub API
 responses by SHA-256. During the run, the benchmark starts a disposable HTTP
 server bound to ``127.0.0.1``, points the GitHub tools at it through the
 ``WORKSHOP_GITHUB_API_BASE`` environment variable, and restores the variable
-afterwards. The service accepts loopback overrides only, so a configured agent
-cannot silently redirect GitHub traffic elsewhere through this seam. One case
+afterwards. The service accepts loopback overrides only and does not send
+``GITHUB_TOKEN`` or use environment proxies for fixture requests. This does not
+restrict other tools, plugins, or the model provider. One case
 contains a planted defect; another is a benign rename with no findings. Both
 produce ``pending_human_review`` outcomes with the agent's findings and the
 expected findings in the report details, and require a human judgment like any
 review case. The loopback server is trusted-local test infrastructure; it is
-not a network boundary, and a real run against ``api.github.com`` still sends
-content to Hugging Face and its providers.
+not a network boundary. A remote model may receive synthetic fixture content,
+and other configured tools may access the network. ``pr-review-v4`` and its
+underlying ``pr-review-v1`` fixture contain invalid Python source; they are
+retained for historical report identification but cannot be run. Do not use
+past results from these suites to judge reviewer quality.
 
 Check the named agent in your configuration before running. ``--local`` is an
 explicit acknowledgement of host execution, not a security feature. The runner

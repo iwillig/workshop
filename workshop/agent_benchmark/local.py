@@ -138,6 +138,35 @@ def _files_based_definition(definition):
 
 def load_suite(name):
     """Load and verify one of the fixed, versioned development suites."""
+    if name == "pr-review-v5":
+        definitions = json.loads(
+            (_ROOT / "fixtures" / "pr-review-v5.json").read_text()
+        )
+        if len(definitions) != 2:
+            raise ValueError("Invalid case count for pr-review-v5")
+        cases, fingerprints = [], []
+        for definition in definitions:
+            if definition["role"] != "pr-review":
+                raise ValueError("Invalid role in pr-review-v5")
+            cases, fingerprints = _versioned_case(
+                "pr-review", definition, cases, fingerprints
+            )
+        suite = Suite(
+            id=name,
+            version=5,
+            role="pr-review",
+            cases=[
+                CaseRef(id=c.case.id, version=c.case.version) for c in cases
+            ],
+        )
+        payload = json.dumps(
+            {"suite": suite.model_dump(), "cases": fingerprints},
+            sort_keys=True,
+            separators=(",", ":"),
+        ).encode()
+        return LocalSuite(
+            suite, tuple(cases), hashlib.sha256(payload).hexdigest()
+        )
     if name.endswith(tuple(f"-v{n}" for n in _VERSION_FILES)):
         return _load_versioned(name)
     if name not in _DEFINITIONS:
@@ -394,6 +423,10 @@ def run_suite(
     if local is not True:
         raise ValueError(
             "Explicit local execution acknowledgement is required"
+        )
+    if name in {"pr-review-v1", "pr-review-v4"}:
+        raise ValueError(
+            "The pr-review-v1/v4 fixtures are invalid; use pr-review-v5"
         )
     CaseRef(id=agent_id, version=1)
     suite = load_suite(name)

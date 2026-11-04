@@ -29,7 +29,7 @@ def benchmark_commands():
             "review-v2",
             "coding-v3",
             "review-v3",
-            "pr-review-v4",
+            "pr-review-v5",
         ]
     ),
 )
