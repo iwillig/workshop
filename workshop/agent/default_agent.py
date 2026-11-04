@@ -75,6 +75,7 @@ class DefaultAgent:
         self._start_time = time.time()
         self.mcp_runtime = None
         self.builtin_tools = BuiltinTools(env)
+        self.tool_providers = []
 
     def get_template_vars(self, **kwargs) -> dict:
         return recursive_merge(
@@ -128,8 +129,14 @@ class DefaultAgent:
                     )
                     == "native"
                 ):
-                    self.model.native_tools = self.builtin_tools.tools + (
-                        runtime.tools if runtime else []
+                    self.model.native_tools = (
+                        self.builtin_tools.tools
+                        + [
+                            tool
+                            for provider in self.tool_providers
+                            for tool in provider.tools
+                        ]
+                        + (runtime.tools if runtime else [])
                     )
                 result = self._run(task, **kwargs)
         except BaseException as exc:
@@ -284,6 +291,11 @@ class DefaultAgent:
                     tool.name for tool in self.builtin_tools.tools
                 }:
                     return self.builtin_tools.execute(action)
+                for provider in self.tool_providers:
+                    if action["tool"] in {
+                        tool.name for tool in provider.tools
+                    }:
+                        return provider.execute(action)
                 if self.mcp_runtime:
                     return self.mcp_runtime.execute(action)
                 return {

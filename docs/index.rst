@@ -46,6 +46,7 @@ A declaration does not mean that a feature using it is implemented.
 
    workshop-cli
    agent
+   pr-review
    agent-evaluation
    agent-evaluation-sandbox
    local-models

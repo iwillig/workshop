@@ -125,6 +125,7 @@ def build_agent(config: dict, **agent_overrides):
     from workshop.agent.interactive import InteractiveAgent
     from workshop.agent.mcp_runtime import MCPRuntime
     from workshop.agent.models import LlmModel
+    from research_context.github_tools import GitHubTools, SPECS
 
     agent_classes = {"default": DefaultAgent, "interactive": InteractiveAgent}
     environment_classes = {
@@ -137,7 +138,7 @@ def build_agent(config: dict, **agent_overrides):
         if not isinstance(tool_config, dict):
             raise ValueError("tools must be a mapping")
         for name, options in tool_config.items():
-            if name not in {"read", "edit", "bash"}:
+            if name not in {"read", "edit", "bash"} | SPECS.keys():
                 raise ValueError(f"Unknown tool: {name}")
             if options not in ({}, None):
                 raise ValueError(f"Tool options are not supported: {name}")
@@ -178,7 +179,7 @@ def build_agent(config: dict, **agent_overrides):
     agent = agent_class(model, environment, **agent_config | agent_overrides)
     if tool_config is not None:
         available = {tool.name for tool in agent.builtin_tools.tools}
-        unavailable = set(tool_config) - available
+        unavailable = set(tool_config) - available - SPECS.keys()
         if unavailable:
             raise ValueError(
                 "Tools unavailable in this environment: "
@@ -189,6 +190,9 @@ def build_agent(config: dict, **agent_overrides):
             for tool in agent.builtin_tools.tools
             if tool.name in tool_config
         ]
+        research_tools = GitHubTools(set(tool_config) & SPECS.keys())
+        if research_tools.tools:
+            agent.tool_providers.append(research_tools)
     servers = config.get("mcp_servers") or {}
     if servers:
         if not isinstance(servers, dict):
