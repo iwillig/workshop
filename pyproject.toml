@@ -25,6 +25,8 @@ select = ["E", "W", "F"]
 [tool.ruff.lint.per-file-ignores]
 # Preserve literal model prompts; wrapping them would change their content.
 "workshop/agent/prompts.py" = ["E501"]
+# Fixture stubs intentionally leave provided imports unused for the task.
+"workshop/agent_benchmark/fixtures/**" = ["F401"]
 
 [tool.setuptools.packages.find]
 include = ["workshop*", "research_context*"]

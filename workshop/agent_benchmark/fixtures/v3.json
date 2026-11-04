@@ -1,0 +1,75 @@
+[
+  {
+    "role": "coding",
+    "id": "leap-year-rules",
+    "fixture": "coding-leap",
+    "task": "Implement is_leap_year in years.py as described in README.txt.",
+    "files": {
+      "README.txt": "5ea05426691214d13a2c86f20348a3ba426346bb5e5ef438de58fde6a7597f32",
+      "years.py": "5b47da4d9bee263707d1c40989fd6fcefee0bd54a23b248068e6b93258d5c3ec"
+    },
+    "check": "coding-leap.py",
+    "check_sha256": "7f8367241ec3ea305fa0b47be39547f09bd7a0ce140c99a3b960411f22db3470"
+  },
+  {
+    "role": "coding",
+    "id": "mean-uses-total",
+    "fixture": "coding-stats",
+    "task": "Implement mean in stats.py as described in README.txt, reusing totals.py.",
+    "files": {
+      "README.txt": "2e93103412996e257076dfd585c65f8ec11fc8319a81ed12095815bbb25a3e16",
+      "stats.py": "7f6208cad76dec3ab8195c14bd008c943c520d133067fb6c08d0ab1b95eee3a7",
+      "totals.py": "38a1a54db330eda4800d1b69d467aa1f57ab7c850b9f69319254b7ecd8cb57a2"
+    },
+    "check": "coding-stats.py",
+    "check_sha256": "a568e2bee0606dc3802ea7298d70c0753cbf06566dc05021e8cfef3a6424c4c8"
+  },
+  {
+    "role": "coding",
+    "id": "flatten-one-level",
+    "fixture": "coding-flatten",
+    "task": "Implement flatten in nested.py as described in README.txt.",
+    "files": {
+      "README.txt": "dc6f27a6c0a7fbf2c7a7a5646db74e1601e2a7b1761b3530563973814c1221c7",
+      "nested.py": "c8d9d1796395f44624c8384d62290807ae620b7c908273faf1b3e2a24f65d3fb"
+    },
+    "check": "coding-flatten.py",
+    "check_sha256": "8d7f45a7dcf14283fc21c41bdcb4ebfb2210a8e9efb0c4ae0b742a74d5f6d59b"
+  },
+  {
+    "role": "review",
+    "id": "input-mutation",
+    "fixture": "review-mutation",
+    "task": "Review top.py using README.txt as context. Report bugs with locations.",
+    "files": {
+      "README.txt": "1a0a562c21e9d81d9965ee2fc93e5b04ed1dbbea5f839d14527e402c841c755f",
+      "top.py": "6ade697bef0ac4732dae1bb5ffb83149f6303108cb53ba0085f652ad7f2feae5"
+    },
+    "check": "review-mutation.txt",
+    "check_sha256": "88b5a44ddf52f09e74c63bed6c92a4cf97123cdfb29c433edb76e6f905d96ca9"
+  },
+  {
+    "role": "review",
+    "id": "swallowed-errors",
+    "fixture": "review-swallow",
+    "task": "Review parse.py using README.txt as context. Report bugs with locations.",
+    "files": {
+      "README.txt": "041bc7a2c54a345e894ff843effc71926f338d008c14ee67c62adb1785f92670",
+      "parse.py": "751ff55719ab7bff807adb01be43ccfd25ade4ecd78ffed67fe34555d54cfa97"
+    },
+    "check": "review-swallow.txt",
+    "check_sha256": "8f63a5812df0dfe51d10ce2ea2225c29d79f5267727606ff1a38f1f246a5eb50"
+  },
+  {
+    "role": "review",
+    "id": "page-boundary",
+    "fixture": "review-pages",
+    "task": "Review pages.py using README.txt as context. Report bugs with locations.",
+    "files": {
+      "README.txt": "86f81d43fcb1b8c8d11224eadd87c564dd9b76dd7b4338bd95f205c54fe58937",
+      "pages.py": "da210bd4e6173e10d3bb40f256a67f208f4906f6e1b8a494e80e0e2068d7281d"
+    },
+    "check": "review-pages.txt",
+    "check_sha256": "3323b9bea790c55b49ccfe9b3dcb821291e368ccbdfb65ef698b657acad0b06b"
+  }
+]

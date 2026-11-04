@@ -16,13 +16,92 @@ def test_bundled_suites_validate():
         assert len(suite.cases) == 1
 
 
-def test_v1_fingerprints_remain_stable():
+def test_suite_fingerprints_remain_stable():
     assert load_suite("coding-v1").sha256 == (
         "1581dfca2daa6805af28cc20807fda85247c9527d72d087d85f088336850cc16"
     )
     assert load_suite("review-v1").sha256 == (
         "fb992407bff77273457fa70571f5f52a368bdf0f19a73121b223cd3ceb680de2"
     )
+    assert load_suite("coding-v2").sha256 == (
+        "d4c10a708fd790c7c734176e2bb040c356fb57b857f3d3bdc87a2780886a7289"
+    )
+    assert load_suite("review-v2").sha256 == (
+        "876752d7e4b998ac3c49527307a9e59ebbbec9a194c54fe9d29c19a077068170"
+    )
+    assert load_suite("coding-v3").sha256 == (
+        "460efc81efd975739b3fde7b8c6e25e279079da51c468b4d34bbc6ae1af4d1db"
+    )
+    assert load_suite("review-v3").sha256 == (
+        "e278d1cb2ddfdacb8c4c7d5cb5e806f84c66e272b5f07571624900cd94450aa5"
+    )
+
+
+def test_v3_suite_has_six_cases_with_new_failure_modes():
+    for name, role in (("coding-v3", "coding"), ("review-v3", "review")):
+        suite = load_suite(name)
+        assert suite.suite.id == name
+        assert suite.suite.version == 3
+        assert len(suite.cases) == 6
+        identifiers = [entry.case.id for entry in suite.cases]
+        assert len(identifiers) == len(set(identifiers))
+        expected = {
+            "coding": [
+                "sum-values",
+                "normalize-text",
+                "clamp-range",
+                "leap-year-rules",
+                "mean-uses-total",
+                "flatten-one-level",
+            ],
+            "review": [
+                "average-empty",
+                "discount-percent",
+                "shared-cache",
+                "input-mutation",
+                "swallowed-errors",
+                "page-boundary",
+            ],
+        }[role]
+        assert identifiers == expected
+
+
+def test_v3_scores_cases_independently(tmp_path):
+    def execute(task, workspace, config):
+        years = workspace / "years.py"
+        if years.exists():
+            years.write_text(
+                "def is_leap_year(year):\n"
+                "    return year % 4 == 0 and ("
+                "year % 100 != 0 or year % 400 == 0)\n"
+            )
+        return {"exit_status": "Submitted"}
+
+    result = run_suite(
+        "coding-v3",
+        {},
+        "coder",
+        tmp_path / "private",
+        local=True,
+        execute=execute,
+    )
+    outcomes = {
+        case["case_id"]: case["outcome"] for case in result["run"]["results"]
+    }
+    assert outcomes["leap-year-rules"] == "pass"
+    assert sum(value == "fail" for value in outcomes.values()) == 5
+
+
+def test_v3_rejects_changed_fixture(tmp_path, monkeypatch):
+    import shutil
+    import workshop.agent_benchmark.local as local
+
+    shutil.copytree(local._ROOT / "fixtures", tmp_path / "fixtures")
+    shutil.copytree(local._ROOT / "checks", tmp_path / "checks")
+    (tmp_path / "fixtures" / "review-pages" / "pages.py").write_text("changed")
+    monkeypatch.setattr(local, "_ROOT", tmp_path)
+    with pytest.raises(ValueError, match="Fixture hash mismatch"):
+        load_suite("review-v3")
 
 
 def test_v2_suite_has_three_independent_multifile_cases(tmp_path):

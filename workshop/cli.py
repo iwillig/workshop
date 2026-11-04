@@ -6,6 +6,7 @@ from research_context.__main__ import cli as research_context_cli
 from template_engine.cli import cli as template_engine_cli
 from workshop.agent.cli import agent_commands
 from workshop.agent_benchmark.cli import benchmark_commands
+from workshop.agent_eval.cli import eval_commands
 from workshop.browser import browser_commands
 
 
@@ -34,3 +35,4 @@ cli.add_command(browser_commands)
 cli.add_command(template_engine_cli, name="template-engine")
 cli.add_command(agent_commands)
 cli.add_command(benchmark_commands)
+cli.add_command(eval_commands)

@@ -38,7 +38,22 @@ for the local runner. See `docs/agent-evaluation.rst` for usage and limitations.
 - [x] Record human judgments separately from original benchmark results.
 - [x] Record complete reported usage totals in run reports and exit nonzero
   when a case has an infrastructure error; report-only outcomes exit zero.
-- [ ] Add richer cases, trace capture, and comparisons.
+- [x] Compare two stored runs of the same suite version with per-case outcome
+  differences, reported usage, and review counts; comparisons contain no
+  overall verdict or quality score.
+- [x] Optionally capture per-case agent trajectories with ``--trace`` as
+  hash-linked private records displayed by ``workshop benchmark trace``.
+- [x] Add six-case v3 suites with new failure modes and multi-file coding
+  fixtures; v1 and v2 fingerprints are pinned and unchanged.
+- [x] Add experimental trace-review records and `workshop eval` commands for
+  reviews, proposals, and decisions. These prototypes are not security-reviewed.
+- [x] Exercise the real `llm` HTTP client against a synthetic loopback server
+  with a synthetic trace; no remote model call is made in this integration test.
+- [ ] Design and independently verify local-only trace review if needed later.
+  The current direction is trusted development with synthetic or non-sensitive
+  traces only. Loopback checks and proxy environment variables do not enforce
+  network isolation; the real `llama-server` probe has not run. See
+  `docs/agent-trace-review-design.md` for corrected limitations.
 
 ## Current foundation
 

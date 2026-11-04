@@ -1,0 +1,1 @@
+page_count uses floor division, so a partial page is not counted and the total is one page short when items do not divide evenly.

@@ -1,0 +1,1 @@
+parse_count catches every exception and returns 0 instead of raising ValueError for text without an integer.

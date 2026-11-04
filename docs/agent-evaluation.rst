@@ -17,10 +17,12 @@ directory is not a sandbox; agents may access other files, credentials, the
 network, and configured MCP servers. A remote model may receive fixture data.
 Private records can contain sensitive output and are not automatically redacted.
 
-Select a named agent and one of the bundled ``coding-v1``, ``review-v1``,
-``coding-v2``, or ``review-v2`` suites. Each v2 suite has three cases; the v1
-suite identities and hashes are preserved. The explicit storage directory must
-be owner-only and its parent must already exist. For example:
+Select a named agent and one of the bundled suites: ``coding-v1`` and
+``review-v1`` have one starter case each, the v2 suites have three cases, and
+the v3 suites have six cases covering different failure modes, including
+multi-file coding fixtures. Earlier suite identities and hashes are preserved.
+The explicit storage directory must be owner-only and its parent must already
+exist. For example:
 
 .. code-block:: bash
 
@@ -49,9 +51,9 @@ Coding cases execute the fixed check locally and report pass or fail. Review
 findings and the expected defect are saved in the private report with a
 ``pending_human_review`` outcome; a person must judge the findings. Agent and
 check execution failures are infrastructure errors. Reports retain separate
-outcome counts. No quality gate, trace capture, or automatic human judgment
-is provided. Human judgments can be
-recorded separately without changing the original run:
+outcome counts. Trace capture is optional; there is no quality gate or
+automatic human judgment. Human judgments can be recorded separately without
+changing the original run:
 
 .. code-block:: bash
 
@@ -66,6 +68,114 @@ show the full judgment history and separate counts based on the most recent
 recorded decision per case; cases without decisions remain pending. The original
 outcomes and counts remain unchanged. Reviewer identity is self-declared; these
 local records are not authenticated or tamper-proof.
+
+Trace capture
+-------------
+
+Add ``--trace`` to ``workshop benchmark run`` to request a private trajectory
+collection in the same storage directory as the report. The report links the
+collection by format, SHA-256, and storage key. ``workshop benchmark trace
+RUN_ID --storage DIRECTORY`` displays it after checking the hash. The hash
+checks consistency, not authenticity against someone who can modify both
+files.
+
+Each case has ``capture_status`` of ``captured`` or ``unavailable``. A failed
+agent may not return a trajectory; it is not replaced with another case's data.
+Captured records wrap agent-produced ``mini-swe-agent-1.1`` trajectories as
+``workshop-benchmark-trace-1``. Existing records from earlier versions may lack
+``capture_status``.
+
+**Trajectories are not redacted or encrypted.** They can contain tasks, tool
+calls and output, model responses, and serialized agent, model, and environment
+configuration, including credentials supplied there. Do not assume secrets are
+removed. Without ``--trace``, benchmark execution does not serialize agent
+trajectories. A hard interruption can leave no report or trace; normal workspace
+cleanup remains best effort.
+
+Trace review with a local model
+-------------------------------
+
+**Experimental: the reviewer is not network-isolated and has not been
+verified to stay local. Use only synthetic or non-sensitive traces.** A
+registered model or local endpoint could forward data elsewhere; proxy settings
+are not a security
+boundary. Do not use sensitive traces until the transport and boundary are
+independently verified. See ``docs/agent-trace-review-design.md``.
+
+Register a small model served by ``llama-server`` on ``127.0.0.1`` in ``llm``
+(for example in ``extra-openai-models.yaml``), then define a named reviewer
+agent with ``model.protocol: native``, **no tools, and no MCP servers**:
+
+.. code-block:: yaml
+
+   agents:
+     reviewer:
+       model:
+         model_name: local-reviewer
+         protocol: native
+
+The reviewer makes a model query, not an agent tool loop. Trace content is
+passed between ``<trace>`` markers with instructions to treat it as untrusted
+data. This prompt is not a guarantee against prompt injection.
+
+.. code-block:: bash
+
+   workshop eval review-trace RUN_ID --config reviewer.yaml \\
+     --agent reviewer --storage "$HOME/private-benchmarks"
+   workshop eval inspect TRACE_REVIEW_ID --storage "$HOME/private-benchmarks"
+   workshop eval proposals --storage "$HOME/private-benchmarks"
+
+``review-trace`` checks the registered model's reported base hostname, rejects
+configured tools and MCP servers, and checks the trace's hash. These checks do
+not establish where data ultimately goes. The model is separately constructed
+after validation, and the loopback service or model plugin could forward data.
+Long traces are truncated by serialized text position; truncation is recorded,
+but individual case submissions may be omitted. Output that is not the required
+JSON is stored as a failed review.
+
+From a completed review, a person can record descriptive proposals linked to
+specific observations and decide on them:
+
+.. code-block:: bash
+
+   workshop eval propose TRACE_REVIEW_ID --kind prompt-change \\
+     --observation 0 --rationale "..." --payload '{"suggested_change": "..."}' \\
+     --storage "$HOME/private-benchmarks"
+   workshop eval decide PROPOSAL_ID --decision reject \\
+     --reviewer "Name" --rationale "..." --storage "$HOME/private-benchmarks"
+
+Kinds are ``eval-case``, ``prompt-change``, and ``skill-note``. Decisions are
+``accept``, ``reject``, and ``revise``, stored as append-only history; the
+latest decision is reported. **Nothing is ever applied automatically**:
+proposals are records, and promotion to a versioned suite or prompt change is
+a separate future action. The reviewer sets proxy environment variables during
+the query, but libraries and processes may ignore or bypass them. The opt-in
+probe below has not been run with a real ``llama-server`` and, even if it
+passes, demonstrates only its particular client requests—not network isolation:
+
+.. code-block:: bash
+
+   WORKSHOP_TRACE_REVIEW_PROBE=1 \\
+   WORKSHOP_TRACE_REVIEW_CONFIG=reviewer.yaml \\
+   WORKSHOP_TRACE_REVIEW_AGENT=reviewer \\
+     pipenv run pytest tests/test_trace_review_live.py
+
+Comparing runs
+--------------
+
+Two stored runs of the same suite version can be compared:
+
+.. code-block:: bash
+
+   workshop benchmark compare RUN_ID_A RUN_ID_B \\
+     --storage "$HOME/private-benchmarks"
+
+The comparison shows per-case outcomes and diagnostics for each run, which cases
+changed outcome, and each run's reported usage totals and review counts. It
+requires identical suite IDs and suite hashes. A missing case in one run is
+shown with a null outcome and counts as changed. The comparison is descriptive:
+it contains no overall verdict, pass rate, or quality score, and pending or
+infrastructure outcomes are never treated as passes or failures.
 
 An optional live smoke test runs the review suite using a configured agent;
 this can contact a remote provider and execute configured tools:

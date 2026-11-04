@@ -1,0 +1,1 @@
+top_three sorts the caller's list in place, although the docstring promises the input is not changed.

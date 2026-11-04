@@ -5,8 +5,10 @@ from pathlib import Path
 
 import click
 
+from workshop.agent_benchmark.compare import compare_reports
 from workshop.agent_benchmark.local import run_suite
 from workshop.agent_eval.reviews import load_report, record_review
+from workshop.agent_eval.trace import load_trace
 from workshop.agent_config import load_config
 
 
@@ -19,7 +21,16 @@ def benchmark_commands():
 @click.option(
     "--suite",
     required=True,
-    type=click.Choice(["coding-v1", "review-v1", "coding-v2", "review-v2"]),
+    type=click.Choice(
+        [
+            "coding-v1",
+            "review-v1",
+            "coding-v2",
+            "review-v2",
+            "coding-v3",
+            "review-v3",
+        ]
+    ),
 )
 @click.option(
     "--config",
@@ -33,8 +44,13 @@ def benchmark_commands():
     is_flag=True,
     help="Acknowledge that host execution is not isolated.",
 )
+@click.option(
+    "--trace",
+    is_flag=True,
+    help="Store agent trajectories in private storage.",
+)
 @click.pass_context
-def run_command(ctx, suite, config, agent_name, storage, local):
+def run_command(ctx, suite, config, agent_name, storage, local, trace):
     """Execute a named agent on a trusted local fixture."""
     if not local:
         raise click.UsageError("Pass --local to acknowledge host execution")
@@ -48,7 +64,12 @@ def run_command(ctx, suite, config, agent_name, storage, local):
         agent_config = load_config(config, agent_name=agent_name)
         agent_config["workshop"] = ctx.obj.get("workshop", {})
         report = run_suite(
-            suite, agent_config, agent_name, storage, local=True
+            suite,
+            agent_config,
+            agent_name,
+            storage,
+            local=True,
+            capture_trace=trace,
         )
     except (ValueError, OSError) as exc:
         raise click.ClickException(str(exc)) from exc
@@ -60,6 +81,31 @@ def run_command(ctx, suite, config, agent_name, storage, local):
             err=True,
         )
         raise click.exceptions.Exit(1)
+
+
+@benchmark_commands.command("trace")
+@click.argument("run_id")
+@click.option("--storage", required=True, type=click.Path(path_type=Path))
+def trace_command(run_id, storage):
+    """Display the trajectories stored for a run."""
+    try:
+        record = load_trace(storage, run_id)
+    except (ValueError, OSError, KeyError) as exc:
+        raise click.ClickException(str(exc)) from exc
+    click.echo(json.dumps(record, indent=2))
+
+
+@benchmark_commands.command("compare")
+@click.argument("run_id_a")
+@click.argument("run_id_b")
+@click.option("--storage", required=True, type=click.Path(path_type=Path))
+def compare_command(run_id_a, run_id_b, storage):
+    """Compare two stored runs of the same suite version."""
+    try:
+        comparison = compare_reports(storage, run_id_a, run_id_b)
+    except (ValueError, OSError, KeyError) as exc:
+        raise click.ClickException(str(exc)) from exc
+    click.echo(json.dumps(comparison, indent=2))
 
 
 @benchmark_commands.command("report")
