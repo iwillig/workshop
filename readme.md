@@ -47,34 +47,27 @@ defined.
 
 ## Components
 
-Research and context is the first component. It provides read-only
-Asana task, Notion page, GitHub issue and pull request, and local Git review commands; see [its
-documentation](research_context/readme.md). The [coding agent](docs/agent.rst)
-can run tasks with an LLM model without tool-call approvals. The ideas
-below describe additional capabilities, not implemented features.
+- [Research and context](research_context/readme.md) provides read-only Asana,
+  Notion, GitHub, and local Git commands.
+- The [coding agent](docs/agent.rst) runs tasks with a configured LLM model and
+  tools, without tool-call approvals.
+- [Agent evaluation](docs/agent-evaluation.rst) provides trusted-local,
+  report-only benchmarks, comparisons, optional trace capture, and human review
+  records. Its trace-review commands are experimental and not network-isolated.
+- The [template engine](template_engine/readme.md) creates projects from
+  trusted local templates, and the browser command captures screenshots.
 
-- Prompt builder
-  - Review different models output
-- Planning documents.
-- Knowledge bases
-  - Memory and learning from mistakes
-- Agent harness
-  - Agents as workers (foreman, technician, inspector)
-  - Agents as tools (bandsaw, drill press, 3D printer)
-- LLM interface engine
-- LLM observation
-- Human reviews
-- Demo LLMs.
-- Eval System
-- Traces.
+The broader ideas—work intake, coordinated agent roles, reusable memory,
+trace-driven improvement, and stronger isolation—remain future work or
+proposals. Current prototypes do not provide a verified security boundary.
 
 ## Coding agent
 
 See the [agent guide](docs/agent.rst) for setup, usage, and execution risks.
-The agent and configuration are separate packages. The benchmark and evaluation
-packages provide report-only local suites and private human-review records; see
-[agent evaluation](docs/agent-evaluation.rst). Local commands and benchmark
-checks run with your user permissions and are not sandboxed.
+The agent and configuration are separate packages. Local commands and
+benchmark checks run with your user permissions and are not sandboxed. A remote
+model or configured MCP server may receive workspace data. Review the execution
+risks and use trusted configurations and fixtures.
 
 ## Project templates
 
@@ -91,6 +84,18 @@ installed as `hegeltest` and imported as `hegel`. See
 `tests/test_github_properties.py` for an example. To report coverage for the
 workshop packages, run `pipenv run python -m pytest tests --cov
 --cov-report=term-missing`. GitHub Actions runs the same coverage report.
+
+If a local `.env.local` contains service credentials, disable dotenv loading for
+the regular test run and execute the dotenv-specific tests separately:
+
+```shell
+PYTHON_DOTENV_DISABLED=1 pipenv run python -m pytest tests \\
+  --ignore=tests/test_env_local.py
+pipenv run python -m pytest tests/test_env_local.py
+```
+
+This prevents missing-credential tests from picking up local tokens. It does not
+unset credentials already exported in the shell.
 
 Run the same lint and formatting checks used in GitHub Actions with
 `pipenv run ruff check . --config pyproject.toml` and

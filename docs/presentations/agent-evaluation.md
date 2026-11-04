@@ -116,6 +116,7 @@ The same suite can be run again with another agent configuration.
 
 - `coding-v1` and `review-v1`: one starter case each.
 - `coding-v2` and `review-v2`: three cases each, including multi-file fixtures.
+- `coding-v3` and `review-v3`: six cases each.
 - Case, suite, fixture, and scoring identities support repeatable comparisons.
 - Hash checks detect changes to the bundled fixture and scoring files.
 
@@ -167,8 +168,8 @@ workshop benchmark run --suite review-v1 \\
 
 - Uses the configured `reviewer` and the `review-v1` suite.
 - Stores reports in `~/private-benchmarks` by default.
-- Review the JSON outcome: a command can exit successfully even when the
-  recorded outcome is an infrastructure error.
+- Review the JSON outcome: infrastructure errors exit nonzero after the report
+  is saved; quality failures and pending reviews remain report-only.
 - A remote model provider may receive fixture content.
 
 # The important safety boundary
@@ -194,9 +195,9 @@ For this development workflow we chose a simpler path:
 # Where this goes next
 
 - Validate more agents and cases with real, explicitly selected models.
-- Improve report readability, usage capture, and live streaming output.
-- Compare runs while preserving suite and scoring versions.
-- Develop trace-informed improvements as proposals for human review.
+- Improve report readability and live streaming output.
+- Expand comparisons and trace-informed proposals for human review.
+- Verify a local-only trace-review boundary before using sensitive traces.
 - Revisit isolation before running untrusted workloads.
 
 # Takeaways

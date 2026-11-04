@@ -25,10 +25,10 @@ The agent system is organized as sibling Python packages:
 * ``workshop.agent_benchmark`` provides versioned cases, suites, and a
   report-only runner for trusted local fixtures.
 * ``workshop.agent_eval`` provides evaluation records, private JSON storage,
-  and human review decisions.
+  human review decisions, and an experimental trace-review prototype.
 
-Trace review is not implemented. See :doc:`agent-evaluation` for benchmark
-usage and the local runner's safety limits.
+The trace reviewer is not network-isolated; use only synthetic or non-sensitive
+traces. See :doc:`agent-evaluation` for benchmark usage and safety limits.
 
 Project configuration
 ---------------------

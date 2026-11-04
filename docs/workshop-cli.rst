@@ -1,14 +1,21 @@
 Workshop command
 ================
 
-The top-level command groups tools by component. Research and context
-exposes its Asana commands under ``workshop research-context asana``. Install
-the command with ``pipenv run pip install -e .`` from the repository root,
-then activate the environment with ``pipenv shell`` so ``workshop`` is on your
-path. The component README covers token setup.
+The top-level command groups tools by component. Install the command with
+``pipenv run pip install -e .`` from the repository root, then activate the
+environment with ``pipenv shell`` so ``workshop`` is on your path. Use
+``workshop --help`` or a command group's ``--help`` to see current options.
 
-Use ``workshop --help`` to list components, or
-``workshop research-context asana --help`` to list Asana commands.
+* ``research-context`` reads Asana, Notion, GitHub, and local Git data.
+* ``agent`` runs a configurable foreground coding or review agent.
+* ``benchmark`` runs trusted-local suites, shows reports and traces, compares
+  runs, and records human review judgments.
+* ``eval`` contains experimental trace-review and proposal commands.
+* ``template-engine`` generates projects from trusted local templates.
+* ``browser`` captures screenshots.
+
+Local agent and benchmark execution is not sandboxed. The experimental trace
+reviewer is not network-isolated; use only synthetic or non-sensitive traces.
 
 List project tasks
 ------------------
@@ -99,6 +106,26 @@ Inspect a local working tree and recent commits as JSON:
 Use ``--repo PATH`` to select a repository or a directory within it; the
 current directory is the default. Diff excludes untracked files. The commands
 are read-only and do not support bare repositories.
+
+Agent and benchmark commands
+----------------------------
+
+.. code-block:: shell
+
+   workshop agent run --help
+   workshop benchmark run --help
+   workshop benchmark report RUN_ID --storage /private/runs
+   workshop benchmark compare RUN_ID_A RUN_ID_B --storage /private/runs
+   workshop benchmark trace RUN_ID --storage /private/runs
+   workshop benchmark review --help
+   workshop eval --help
+
+The agent runs tools without per-call approval. Benchmark cases and coding
+checks run with the local user's permissions, require ``--local``, and are for
+trusted configurations and fixtures only. An explicitly configured private
+storage directory is required for reports and traces. Trace review is an
+experimental prototype, not a verified local-only boundary. See :doc:`agent`
+and :doc:`agent-evaluation` for examples, exit statuses, and privacy risks.
 
 Project templates
 -----------------

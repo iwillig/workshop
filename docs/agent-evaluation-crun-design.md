@@ -28,10 +28,13 @@ user with the same identity, privileged users, kernel/runtime compromise,
 provider compromise, and malicious trusted images are outside this boundary.
 Choose a stronger isolation boundary when those risks are unacceptable.
 
-Only fixed, disposable diagnostics may be run while implementing this design.
-No benchmark agent, arbitrary fixture code, or scorer workload may run until
-all rollout gates have been independently verified and reviewed. No silent
-fallback to local execution, ordinary Docker, or a weaker profile is allowed.
+Only fixed, disposable diagnostics may be run under this proposed controller
+while implementing the design. No benchmark agent, arbitrary fixture code, or
+scorer workload may run under the proposed isolated profile until all rollout
+gates have been independently verified and reviewed. No silent fallback to
+local execution, ordinary Docker, or a weaker profile is allowed. The separate,
+explicitly unisolated local runner for trusted fixtures is documented in
+`docs/agent-evaluation.rst`; it is not an implementation of this profile.
 
 ## Controller-owned inputs and runtime
 

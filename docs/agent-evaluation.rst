@@ -1,12 +1,13 @@
 Agent evaluation foundations
 ============================
 
-The benchmark and evaluation packages provide a small report-only local
-benchmark, versioned contracts, private JSON storage, and runtime diagnostics.
-They do not judge reviews, import trajectories, or isolate agents. The local
-benchmark does not depend on the proposed isolation boundary in
-:doc:`agent-evaluation-sandbox`; that boundary remains unimplemented and
-unreviewed. See ``docs/agent-evaluation-plan.md`` for the broader proposal.
+The benchmark and evaluation packages provide report-only local benchmarks,
+private JSON records, comparisons, optional trace capture, human decisions,
+and an experimental trace-review prototype. They do not automatically judge
+review findings, import arbitrary external trajectories, or isolate agents.
+The proposed isolation boundary in :doc:`agent-evaluation-sandbox` remains
+unimplemented and unreviewed. See ``docs/agent-evaluation-plan.md`` for the
+broader proposal.
 
 Local benchmark
 ---------------
@@ -98,8 +99,8 @@ Trace review with a local model
 **Experimental: the reviewer is not network-isolated and has not been
 verified to stay local. Use only synthetic or non-sensitive traces.** A
 registered model or local endpoint could forward data elsewhere; proxy settings
-are not a security
-boundary. Do not use sensitive traces until the transport and boundary are
+are not a security boundary. Do not use sensitive traces until the transport and
+boundary are
 independently verified. See ``docs/agent-trace-review-design.md``.
 
 Register a small model served by ``llama-server`` on ``127.0.0.1`` in ``llm``
@@ -116,7 +117,8 @@ agent with ``model.protocol: native``, **no tools, and no MCP servers**:
 
 The reviewer makes a model query, not an agent tool loop. Trace content is
 passed between ``<trace>`` markers with instructions to treat it as untrusted
-data. This prompt is not a guarantee against prompt injection.
+data. This prompt is not a guarantee against prompt injection. The prototype
+requests a JSON observations list; it does not automatically create proposals.
 
 .. code-block:: bash
 
@@ -131,7 +133,8 @@ not establish where data ultimately goes. The model is separately constructed
 after validation, and the loopback service or model plugin could forward data.
 Long traces are truncated by serialized text position; truncation is recorded,
 but individual case submissions may be omitted. Output that is not the required
-JSON is stored as a failed review.
+JSON is stored as a failed review. If the model query itself raises an exception,
+the command reports the error without storing a review record.
 
 From a completed review, a person can record descriptive proposals linked to
 specific observations and decide on them:
@@ -172,10 +175,12 @@ Two stored runs of the same suite version can be compared:
 
 The comparison shows per-case outcomes and diagnostics for each run, which cases
 changed outcome, and each run's reported usage totals and review counts. It
-requires identical suite IDs and suite hashes. A missing case in one run is
-shown with a null outcome and counts as changed. The comparison is descriptive:
-it contains no overall verdict, pass rate, or quality score, and pending or
-infrastructure outcomes are never treated as passes or failures.
+requires matching suite IDs and hashes. A missing case in one run is shown with
+a null outcome and counts as changed. A case is marked changed only when its
+outcome differs; changes to findings or human decisions alone do not change that
+flag. The comparison is descriptive: it contains no overall verdict, pass rate,
+or quality score, and pending or infrastructure outcomes are never treated as
+passes or failures.
 
 An optional live smoke test runs the review suite using a configured agent;
 this can contact a remote provider and execute configured tools:
@@ -203,8 +208,8 @@ The Python APIs are ``workshop.agent_benchmark.contracts`` and
 ``workshop.agent_eval.contracts``. Their Pydantic models reject unknown fields;
 all have ``schema_version: 1``. Use ``model_validate_json()`` to validate JSON,
 ``model_dump(mode="json")`` for serializable data, and
-``model_json_schema()`` for the full machine-readable schema. These first
-schemas are experimental and may change before a runner is introduced.
+``model_json_schema()`` for the full machine-readable schema. These schemas
+and the local runner are experimental and may change.
 
 * ``Case`` contains an ID, positive version, coding/review role, task, fixture
   ID and SHA-256, scoring method and version, and optional constraints.
@@ -222,8 +227,10 @@ schemas are experimental and may change before a runner is introduced.
   does not infer a pass or quality gate.
 
 These models validate structure, not the correctness of tasks, hashes,
-redaction claims, or results. Prompt/config fingerprints, timestamps, human
-judgments and proposal contracts are not implemented yet.
+redaction claims, or results. Separate experimental contracts exist for human
+review decisions, trace reviews, proposals, and proposal decisions. They do not
+make records tamper-proof or verify that model observations are correct.
+Complete prompt/config fingerprints and run timestamps remain future work.
 
 Sandbox preflight diagnostics
 -----------------------------

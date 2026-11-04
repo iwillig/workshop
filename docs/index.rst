@@ -1,9 +1,14 @@
 Common AI agent workshop
 ========================
 
-The workshop is a collection of distinct components that support work with the
-Common codebase. Research and context provides read-only access to Asana tasks,
-Notion pages, and GitHub issues and pull requests through the ``workshop`` command.
+The workshop is a collection of tools that support work with the Common
+codebase. The ``workshop`` command provides research and context commands, a
+configurable coding agent, local report-only benchmarks and evaluation
+prototypes, project templates, and a browser screenshot command.
+
+Local agent and benchmark execution is **not sandboxed**. The experimental
+trace reviewer is **not network-isolated**; use only synthetic or non-sensitive
+traces. See :doc:`agent` and :doc:`agent-evaluation` before running them.
 
 Dependencies
 ------------

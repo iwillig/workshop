@@ -12,9 +12,11 @@ slice is actually verified; this plan does not supersede its safety gates.
 
 ## Current status
 
-- **Available:** experimental case/suite/result/trace-reference contracts,
-  explicit private JSON storage, separate outcome counts, and deterministic
-  tests. Contracts are incomplete and storage does not redact secrets.
+- **Available for trusted local development:** versioned coding/review suites,
+  report-only execution, private JSON storage, comparisons, optional trace
+  capture, human decisions, and experimental trace-review/proposal commands.
+  Local execution is not isolated, trace review is not network-isolated, and
+  storage does not redact secrets.
 - **Diagnostics, not a sandbox:** Podman capability and disposable-boundary
   probes; a single-container crash-recovery diagnostic; a fake-provider,
   text-only broker; a controlled loopback DNS diagnostic; and a user-systemd
@@ -25,14 +27,14 @@ slice is actually verified; this plan does not supersede its safety gates.
   and observed service and sleep-descendant freeze/thaw and cleanup. Hostile
   descendants and standalone `crun` integration remain unverified.
 - **Not implemented:** the standalone `crun` controller, production broker,
-  safe artifact export, isolated scorer, real benchmark runner, human scoring
-  workflow, and trace-review/promotion loop. There has been no independent
-  security review.
+  safe artifact export, isolated scorer, isolated benchmark runner, verified
+  local-only trace review, and promotion loop. There has been no independent
+  security review. The trusted-local runner and manual human decisions are not
+  substitutes for these boundaries.
 
-The original plan is broad and mixes several milestones. Finish the minimum
-security boundary and a narrow report-only runner first. Trace-driven prompt or
-skill improvement is a later milestone, not a prerequisite for the first
-benchmark. Preserve existing user decisions: no tool-call approvals, explicit
+The original plan is broad and mixes several milestones. The milestones below
+apply to a future isolated runner; they are not prerequisites for the existing
+trusted-local runner. Trace-driven prompt or skill promotion remains later work. Preserve existing user decisions: no tool-call approvals, explicit
 private storage, no CI quality gates, and human judgment for review findings.
 
 ## Milestone 0 — agree on the first supported profile

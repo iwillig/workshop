@@ -1,9 +1,11 @@
 # Local benchmark validation and expansion plan
 
-**Status:** The local benchmark implementation and both live smoke runs are
-complete. The `hf-glm` review run identified the expected defect and received
-a separate human pass decision. A later `hf-glm` coding run passed the
-deterministic check. The v2 suites and private review records are implemented.
+**Status: this local benchmark slice is complete.** Both `hf-glm` smoke runs
+completed: the reviewer identified the expected defect and received a separate
+human pass decision, and the coding check passed. Since this checklist was
+written, v3 suites, report comparisons, optional trace capture, and an
+experimental trace-review prototype have also been added. See
+`docs/agent-evaluation.rst` for current usage and safety limits.
 
 ## Scope and safety
 

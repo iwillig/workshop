@@ -19,8 +19,8 @@ for the local runner. See `docs/agent-evaluation.rst` for usage and limitations.
   profile is approved for benchmarks or equivalent to a VM.
 - [ ] A host-controlled model broker remains proposed for an isolated runner.
   The local runner uses the configured model directly and may use remote or MCP
-  services. Trace review is not implemented; its local-only boundary remains
-  part of the separate proposal.
+  services. Experimental trace-review commands exist, but their local-only
+  boundary is unverified; use synthetic or non-sensitive traces only.
 - [x] Keep benchmark results report-only; require human review for review
   findings and proposal promotion. Do not add tool-call approvals or automatic
   prompt, skill, or suite changes.

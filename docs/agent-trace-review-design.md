@@ -34,9 +34,10 @@ review → propose → human decision → (separately) promote and re-benchmark.
 - **Trace content is untrusted.** Traces may contain prompt-injection text.
   Reviewer instructions must treat trace content as data to observe, never as
   instructions to follow. The reviewer output is a record, not an action.
-- **Output is proposals only.** The reviewer produces structured observations
-  and candidate proposals. Nothing is applied to prompts, suites, or skills by
-  this workflow.
+- **Human-controlled proposals:** the prototype reviewer returns observations.
+  A person can create a descriptive proposal linked to observation indexes and
+  record decisions. The model does not automatically create proposals, and
+  nothing is applied to prompts, suites, or skills by this workflow.
 
 ## Data contracts
 
@@ -49,8 +50,9 @@ benchmark reports. Pydantic models with `extra="forbid"`, `schema_version: 1`.
   created timestamp, and status (`completed` or `failed`).
 - **Proposal:** ID, source review ID, kind (`eval-case`, `prompt-change`, or
   `skill-note`), a bounded rationale, evidence references (review ID plus
-  observation indexes; never raw trace copies), and the candidate payload as
-  descriptive data. Status starts at `proposed`.
+  observation indexes), and a descriptive candidate payload. Status starts at
+  `proposed`. Rationale, observation text, and payload are not redacted and may
+  contain sensitive content; private storage is not encryption.
 - **ProposalDecision:** ID, proposal ID, decision (`accept`, `reject`, or
   `revise`), reviewer name, rationale, timestamp. Decisions are append-only
   history; the latest decision per proposal is reported, like case reviews.
@@ -61,15 +63,17 @@ The prototype truncates serialized trace text and records that truncation.
 It retains portions of the overall head and tail, but can omit a case's final
 submission; preserving all submissions within a strict budget remains open.
 
-## CLI sketch
+## Prototype CLI
 
-Exact names are subject to implementation:
+These commands exist, but record schemas and behavior remain experimental:
 
 ```text
 workshop eval review-trace RUN_ID --config reviewer.yaml --agent reviewer \
   --storage /private/benchmarks
 workshop eval inspect REVIEW_ID --storage /private/benchmarks
-workshop eval propose REVIEW_ID --kind prompt-change --storage ...
+workshop eval propose REVIEW_ID --kind prompt-change --observation 0 \
+  --rationale "..." --payload '{"suggested_change": "..."}' \
+  --storage /private/benchmarks
 workshop eval decide PROPOSAL_ID --decision reject --reviewer NAME \
   --rationale "..." --storage /private/benchmarks
 workshop eval proposals --storage /private/benchmarks

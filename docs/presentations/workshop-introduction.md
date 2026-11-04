@@ -200,7 +200,7 @@ They share an entry point, but are not yet a complete automated workflow.
 - Results and judgments go to an explicitly selected private directory.
 - Results are report-only: no automatic CI quality gate.
 
-Current v2 suites contain three coding and three review cases. They are useful
+Current v3 suites contain six coding and six review cases. They are useful
 smoke tests, not broad proof of agent quality.
 
 # How the agent system is tested
@@ -249,7 +249,7 @@ One successful example demonstrates the path—not general agent readiness.
 
 - Managed background agent jobs and durable job recovery.
 - An integrated task-to-agent workflow or multi-agent coordination.
-- Automatic import and review of private agent traces.
+- Automatic import of external traces and a verified local-only reviewer.
 - A memory or learning system that carries lessons into future work.
 - A verified execution boundary for untrusted agents or generated code.
 
@@ -279,14 +279,15 @@ eval ..> run : compare
 @enduml
 ```
 
-**Proposed, not implemented:** trace review, proposal promotion, and reusable
-memory require further design. No automatic promotion or prompt changes.
+**Partly implemented:** trace capture, experimental review, and manual proposal
+records exist. Verified local-only review, promotion, and reusable memory remain
+open. Nothing is promoted or applied automatically.
 
 # The next practical steps
 
-1. Improve reports: preserve reported usage and surface infrastructure errors.
-2. Expand cases and compare runs across agent configurations.
-3. Design trace-informed improvement proposals with human review.
+1. Exercise and improve comparisons across agent configurations.
+2. Expand cases beyond the current small fixtures.
+3. Improve trace-review evidence and the human proposal workflow.
 4. Consider managed jobs and stronger isolation as separate future work.
 
 These are directions for development, not promises about delivery order.
@@ -299,6 +300,7 @@ These are directions for development, not promises about delivery order.
 - Remote model providers may receive task and workspace content.
 - Private logs and reports can contain sensitive data; they are not redacted.
 - Use only trusted configurations and fixtures; inspect provider and tool settings.
+- Trace review is not network-isolated; use synthetic or non-sensitive traces.
 - Isolation prototypes and a proposed `crun` design are not security-reviewed.
 
 # The public command groups
@@ -306,7 +308,8 @@ These are directions for development, not promises about delivery order.
 | Command | Purpose |
 |:--|:--|
 | `workshop agent` | Run a configured coding or review agent. |
-| `workshop benchmark` | Run local suites, inspect reports, record reviews. |
+| `workshop benchmark` | Run suites, inspect reports, and record reviews. |
+| `workshop eval` | Experiment with trace review and proposal records. |
 | `workshop research-context` | Read Asana, Notion, GitHub, and local Git. |
 | `workshop template-engine` | List and create projects from local templates. |
 | `workshop browser` | Capture a page screenshot. |
