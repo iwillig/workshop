@@ -16,6 +16,32 @@ benches, tools, and a shared understanding of how we build together.
 It's not an assembly line designed to produce thousands of pull
 requests per day.
 
+## The workshop as a viable system
+
+The [Viable System Model](https://en.wikipedia.org/wiki/Viable_system_model)
+(VSM) describes how the engineer, agents, tools, and feedback work together.
+The engineer running the workshop directs its work and is accountable for the
+results. Some capabilities in this model are still planned.
+
+- **System 1, operations:** The engineer and agents do the work, such as
+  research, coding, and pull request review.
+- **System 2, coordination:** Conventions, task boundaries, shared context,
+  limits, and handoffs help activities work together without conflict.
+- **System 3, operational management:** The engineer selects work, configures
+  agents and resources, monitors runs, and intervenes when needed.
+- **System 3\*, assurance:** The engineer checks results using tests, traces,
+  direct inspection, and reviews.
+- **System 4, intelligence and adaptation:** LLMs help explore possibilities,
+  interpret evidence, and propose improvements. The engineer brings context,
+  judgment, and review.
+- **System 5, identity and policy:** The engineer sets the workshop's purpose,
+  acceptable risks, and priorities, balancing present work with improvement.
+
+The engineer moves between these functions throughout the work. Reviewing a
+pull request finding provides assurance. Spotting a pattern of missed defects
+can lead to a better review approach. LLMs can help with both; the engineer
+makes the decisions.
+
 ## Anatomy of an AI factory
 
 An AI factory brings together models, context, tools, workflows, and
