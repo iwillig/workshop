@@ -1,4 +1,4 @@
-# Workshop
+# LLM-Workshop
 
 A collection of tools to make working with the LLM Agents easier.
 
