@@ -259,7 +259,8 @@ def test_cli_runs_configured_agent_with_fixture_workspace(
 ):
     config = tmp_path / "agents.yaml"
     config.write_text(
-        "agents:\n  coder:\n    model:\n      model_name: fake-model\n"
+        "version: 1\nagents:\n  coder:\n    model:\n"
+        "      model_name: fake-model\n"
     )
     captured = {}
 
@@ -282,12 +283,12 @@ def test_cli_runs_configured_agent_with_fixture_workspace(
     result = CliRunner().invoke(
         cli,
         [
+            "--workshop-config",
+            str(config),
             "benchmark",
             "run",
             "--suite",
             "coding-v1",
-            "--config",
-            str(config),
             "--agent",
             "coder",
             "--storage",

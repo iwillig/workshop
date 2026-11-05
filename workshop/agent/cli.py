@@ -7,7 +7,8 @@ from pathlib import Path
 import click
 from rich.console import Console
 
-from workshop.agent_config import DEFAULT_CONFIG_PATH, build_agent, load_config
+from workshop.agent_config import build_agent
+from workshop.config import load_workshop_config, select_agent
 
 
 @click.group(name="agent")
@@ -20,14 +21,6 @@ def agent_commands():
     "-t", "--task", required=True, help="The task for the agent to solve."
 )
 @click.option(
-    "-c",
-    "--config",
-    "config_path",
-    type=click.Path(exists=True, dir_okay=False, path_type=Path),
-    default=None,
-    help="YAML config file (default: the packaged default config).",
-)
-@click.option(
     "--agent",
     "agent_name",
     default=None,
@@ -38,7 +31,7 @@ def agent_commands():
     "--model",
     "model_name",
     default=None,
-    help="An llm model id or alias (default: llm's default model).",
+    help="Override the configured llm model ID or alias.",
 )
 @click.option(
     "-y",
@@ -75,7 +68,6 @@ def agent_commands():
 )
 def run_agent(
     task,
-    config_path,
     agent_name,
     model_name,
     yolo,
@@ -87,15 +79,20 @@ def run_agent(
     timeout,
 ):
     """Run the agent on a task. Flags override values from the YAML config."""
+    context = click.get_current_context(silent=True)
     try:
-        config = load_config(
-            config_path or DEFAULT_CONFIG_PATH, agent_name=agent_name
+        project = (
+            context.obj.get("workshop", {})
+            if context and context.obj
+            else load_workshop_config()
+        )
+        _, config = select_agent(
+            project, agent_name, model_override=model_name
         )
     except (ValueError, OSError) as exc:
         raise click.ClickException(str(exc)) from exc
-    context = click.get_current_context(silent=True)
-    if context and isinstance(context.obj, dict) and "workshop" in context.obj:
-        config["workshop"] = context.obj["workshop"]
+    if project:
+        config["workshop"] = project
     if model_name:
         config["model"]["model_name"] = model_name
     if output:

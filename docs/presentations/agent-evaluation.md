@@ -162,7 +162,7 @@ The original run remains unchanged. Reviewer identity is self-declared.
 
 ```sh
 workshop benchmark run --suite review-v1 \\
-  --config examples/review-agent.yaml --agent reviewer \\
+  --agent reviewer \\
   --storage "$HOME/private-benchmarks" --local
 ```
 

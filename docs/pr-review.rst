@@ -28,7 +28,7 @@ read from the environment when set. ``research-context`` commands load
 ``.env.local``; plain ``workshop agent run`` does not, so export the token or
 use a dotenv-aware workflow as needed.
 
-The example named agent in ``examples/pr-review-agent.yaml`` carries its own
+The named agent in the repository's ``workshop.yaml`` carries its own
 system prompt, native model settings, step limit, and only the three GitHub
 read tools. Its ``hf-glm`` model ID serves ``zai-org/GLM-5.3-Flash`` through
 Hugging Face; see :doc:`agent` for account, token, registration steps, and the
@@ -36,7 +36,7 @@ full ``zai-org/GLM-5.3`` alternative. Run from the repository root:
 
 .. code-block:: shell
 
-   pipenv run workshop agent run --config examples/pr-review-agent.yaml \\
+   pipenv run workshop agent run \\
      --agent pr-reviewer \\
      --task 'Review OWNER/REPO pull request 123; report findings locally.'
 

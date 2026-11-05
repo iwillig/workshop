@@ -284,6 +284,46 @@ def test_mcp_adapter_rejects_colliding_tool_names():
     asyncio.run(run())
 
 
+def test_stdio_env_from_resolves_secret_at_connection_time(monkeypatch):
+    events = []
+    monkeypatch.setenv("MCP_TOKEN_TEST", "secret-value")
+
+    @asynccontextmanager
+    async def transport(params):
+        events.append(params.env)
+        yield ("read", "write")
+
+    class Session:
+        def __init__(self, *args):
+            pass
+
+        async def __aenter__(self):
+            return self
+
+        async def __aexit__(self, *args):
+            pass
+
+        async def initialize(self):
+            pass
+
+    monkeypatch.setattr("workshop.agent.mcp_client.stdio_client", transport)
+    monkeypatch.setattr("workshop.agent.mcp_client.ClientSession", Session)
+
+    async def run():
+        async with MCPConnection(
+            {
+                "transport": "stdio",
+                "command": "fake",
+                "env": {"MODE": "read"},
+                "env_from": {"TOKEN": "MCP_TOKEN_TEST"},
+            }
+        ):
+            pass
+
+    asyncio.run(run())
+    assert events == [{"MODE": "read", "TOKEN": "secret-value"}]
+
+
 def test_http_headers_are_loaded_from_environment(monkeypatch):
     events = []
     monkeypatch.setenv("MCP_AUTH_TEST", "Bearer secret")

@@ -8,7 +8,6 @@ def test_agent_subsystem_packages_and_legacy_config_imports():
     legacy = importlib.import_module("workshop.agent.config")
     assert config.load_config is legacy.load_config
     assert config.build_agent is legacy.build_agent
-    assert config.DEFAULT_CONFIG_PATH.is_file()
     assert importlib.import_module("workshop.agent_benchmark")
     assert importlib.import_module("workshop.agent_eval")
 
@@ -41,8 +40,9 @@ def test_agent_runtime_does_not_load_config_package():
     assert result.returncode == 0, result.stderr
 
 
-def test_packaged_default_config_loads():
-    from workshop.agent_config import DEFAULT_CONFIG_PATH, load_config
+def test_project_config_loads():
+    from pathlib import Path
+    from workshop.agent_config import load_config
 
-    config = load_config(DEFAULT_CONFIG_PATH)
-    assert config["agent"]["agent_class"] == "interactive"
+    config = load_config(Path(__file__).resolve().parents[1] / "workshop.yaml")
+    assert config["model"]["model_name"] == "hf-glm"

@@ -102,9 +102,7 @@ class SupervisedAgent:
                 "docker",
                 "workshop.agent.environments.DockerEnvironment",
             }:
-                executable = environment.get("executable") or os.environ.get(
-                    "WORKSHOP_DOCKER_EXECUTABLE", "docker"
-                )
+                executable = environment.get("executable") or "docker"
                 try:
                     subprocess.Popen(
                         [executable, "rm", "-f", self._container_name],

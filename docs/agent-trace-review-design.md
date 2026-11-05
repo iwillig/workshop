@@ -68,7 +68,7 @@ submission; preserving all submissions within a strict budget remains open.
 These commands exist, but record schemas and behavior remain experimental:
 
 ```text
-workshop eval review-trace RUN_ID --config reviewer.yaml --agent reviewer \
+workshop eval review-trace RUN_ID --agent reviewer \
   --storage /private/benchmarks
 workshop eval inspect REVIEW_ID --storage /private/benchmarks
 workshop eval propose REVIEW_ID --kind prompt-change --observation 0 \

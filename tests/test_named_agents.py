@@ -1,7 +1,7 @@
 import pytest
 from click.testing import CliRunner
 
-from workshop.agent.cli import agent_commands
+from workshop.cli import cli
 from workshop.agent.config import build_agent, load_config
 
 
@@ -13,9 +13,7 @@ def test_repository_review_example_uses_only_read_tool(monkeypatch):
         "workshop.agent.models.llm.get_model",
         lambda _: SimpleNamespace(conversation=lambda: object()),
     )
-    path = (
-        Path(__file__).resolve().parents[1] / "examples" / "review-agent.yaml"
-    )
+    path = Path(__file__).resolve().parents[1] / "workshop.yaml"
     agent = build_agent(load_config(path, agent_name="reviewer"))
     assert [tool.name for tool in agent.builtin_tools.tools] == ["read"]
     assert agent.mcp_runtime is None
@@ -23,13 +21,21 @@ def test_repository_review_example_uses_only_read_tool(monkeypatch):
     assert agent.model.config.model_name == "hf-glm"
 
 
-def test_named_agent_selection_and_relative_prompt(tmp_path):
+def test_named_agent_selection_and_relative_prompt(tmp_path, monkeypatch):
+    from types import SimpleNamespace
+
+    monkeypatch.setattr(
+        "workshop.agent.models.llm.get_model",
+        lambda _: SimpleNamespace(conversation=lambda: object()),
+    )
     (tmp_path / "system.txt").write_text("Named system")
     config_path = tmp_path / "agents.yaml"
     config_path.write_text("""\
+version: 1
 agents:
   reviewer:
     model:
+      model_name: test-model
       protocol: native
     prompts:
       system_file: system.txt
@@ -40,6 +46,8 @@ agents:
     tools:
       read: {}
   coder:
+    model:
+      model_name: test-model
     agent:
       agent_class: default
     limits:
@@ -62,7 +70,10 @@ agents:
 
 def test_cli_selects_named_agent_and_applies_overrides(tmp_path, monkeypatch):
     path = tmp_path / "agents.yaml"
-    path.write_text("agents:\n  first:\n    limits:\n      step_limit: 7\n")
+    path.write_text(
+        "version: 1\nagents:\n  first:\n    model: {model_name: fake}\n"
+        "    limits:\n      step_limit: 7\n"
+    )
     seen = {}
 
     class Agent:
@@ -75,11 +86,12 @@ def test_cli_selects_named_agent_and_applies_overrides(tmp_path, monkeypatch):
 
     monkeypatch.setattr("workshop.agent.cli.build_agent", build)
     result = CliRunner().invoke(
-        agent_commands,
+        cli,
         [
-            "run",
-            "--config",
+            "--workshop-config",
             str(path),
+            "agent",
+            "run",
             "--agent",
             "first",
             "--step-limit",
@@ -94,11 +106,11 @@ def test_cli_selects_named_agent_and_applies_overrides(tmp_path, monkeypatch):
 
 def test_named_agents_reject_unknown_keys_and_tools(tmp_path):
     path = tmp_path / "agents.yaml"
-    path.write_text("agents:\n  first:\n    unexpected: true\n")
+    path.write_text("version: 1\nagents:\n  first:\n    unexpected: true\n")
     with pytest.raises(ValueError, match="unexpected"):
         load_config(path, agent_name="first")
     path.write_text(
-        "agents:\n  first:\n    model:\n      protocol: native\n"
+        "version: 1\nagents:\n  first:\n    model:\n      protocol: native\n"
         "    tools:\n      unknown: {}\n"
     )
     with pytest.raises(ValueError, match="unknown"):

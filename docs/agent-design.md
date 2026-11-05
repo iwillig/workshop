@@ -1,6 +1,8 @@
 # Configurable coding agents: proposed design
 
-**Status: draft for review.** This document proposes an implementation; it does not describe features that are already available.
+**Status: historical draft.** Configuration examples and CLI commands below
+are superseded; current named agents live in `workshop.yaml`. See
+`docs/agent.rst` for implemented behavior.
 
 ## Goal
 

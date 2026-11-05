@@ -181,7 +181,9 @@ def test_cli_infrastructure_error_saves_report_and_exits_nonzero(
     tmp_path, monkeypatch
 ):
     config = tmp_path / "agents.yaml"
-    config.write_text("agents:\n  coder: {}\n")
+    config.write_text(
+        "version: 1\nagents:\n  coder: {model: {model_name: fake}}\n"
+    )
 
     def fail(*args):
         raise RuntimeError("provider unavailable")
@@ -191,12 +193,12 @@ def test_cli_infrastructure_error_saves_report_and_exits_nonzero(
     result = CliRunner().invoke(
         cli,
         [
+            "--workshop-config",
+            str(config),
             "benchmark",
             "run",
             "--suite",
             "coding-v1",
-            "--config",
-            str(config),
             "--agent",
             "coder",
             "--storage",
@@ -222,7 +224,9 @@ def test_cli_quality_outcomes_are_not_gates(
     tmp_path, monkeypatch, suite, expected
 ):
     config = tmp_path / "agents.yaml"
-    config.write_text("agents:\n  agent: {}\n")
+    config.write_text(
+        "version: 1\nagents:\n  agent: {model: {model_name: fake}}\n"
+    )
     monkeypatch.setattr(
         "workshop.agent_benchmark.local.execute_agent",
         lambda *args: {"exit_status": "Submitted", "submission": "done"},
@@ -230,12 +234,12 @@ def test_cli_quality_outcomes_are_not_gates(
     result = CliRunner().invoke(
         cli,
         [
+            "--workshop-config",
+            str(config),
             "benchmark",
             "run",
             "--suite",
             suite,
-            "--config",
-            str(config),
             "--agent",
             "agent",
             "--storage",

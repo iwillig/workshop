@@ -55,6 +55,8 @@ def test_cli_core_config_passes_logging_to_agent(tmp_path, monkeypatch):
     path = tmp_path / "workshop.yaml"
     path.write_text(
         "llm:\n  logging:\n    enabled: true\n    database: logs.db\n"
+        "version: 1\ndefault_agent: test\nagents:\n  test:\n"
+        "    model: {model_name: fake}\n"
     )
     seen = {}
 

@@ -31,10 +31,27 @@ class MCPConnection:
         try:
             transport = self.config.get("transport")
             if transport == "stdio":
+                env = dict(self.config.get("env") or {})
+                references = self.config.get("env_from", {})
+                if not isinstance(references, dict):
+                    raise ValueError(
+                        "env_from must map names to environment variables"
+                    )
+                for name, variable in references.items():
+                    if (
+                        not isinstance(name, str)
+                        or not isinstance(variable, str)
+                        or not os.environ.get(variable)
+                    ):
+                        raise ValueError(
+                            "Missing or invalid environment variable "
+                            f"for {name!r}"
+                        )
+                    env[name] = os.environ[variable]
                 params = StdioServerParameters(
                     command=self.config["command"],
                     args=self.config.get("args", []),
-                    env=self.config.get("env"),
+                    env=env or None,
                     cwd=self.config.get("cwd"),
                 )
                 streams = await stack.enter_async_context(stdio_client(params))

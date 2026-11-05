@@ -28,7 +28,7 @@ exist. For example:
 
 .. code-block:: bash
 
-   workshop benchmark run --suite review-v1 --config examples/review-agent.yaml \\
+   workshop benchmark run --suite review-v1 \\
      --agent reviewer --storage "$HOME/private-benchmarks" --local
    workshop benchmark report RUN_ID --storage "$HOME/private-benchmarks"
 
@@ -131,6 +131,7 @@ agent with ``model.protocol: native``, **no tools, and no MCP servers**:
 
 .. code-block:: yaml
 
+   version: 1
    agents:
      reviewer:
        model:
@@ -144,7 +145,7 @@ requests a JSON observations list; it does not automatically create proposals.
 
 .. code-block:: bash
 
-   workshop eval review-trace RUN_ID --config reviewer.yaml \\
+   workshop eval review-trace RUN_ID \\
      --agent reviewer --storage "$HOME/private-benchmarks"
    workshop eval inspect TRACE_REVIEW_ID --storage "$HOME/private-benchmarks"
    workshop eval proposals --storage "$HOME/private-benchmarks"
@@ -210,7 +211,7 @@ this can contact a remote provider and execute configured tools:
 .. code-block:: bash
 
    WORKSHOP_BENCHMARK_LIVE=1 \\
-   WORKSHOP_BENCHMARK_AGENT_CONFIG=examples/review-agent.yaml \\
+   WORKSHOP_BENCHMARK_AGENT_CONFIG=workshop.yaml \\
    WORKSHOP_BENCHMARK_AGENT_NAME=reviewer \\
      pipenv run pytest tests/test_local_benchmark_live.py
 
@@ -219,7 +220,7 @@ The coding smoke test also requires explicit opt-in and a named coding agent:
 .. code-block:: bash
 
    WORKSHOP_BENCHMARK_CODING_LIVE=1 \\
-   WORKSHOP_BENCHMARK_CODING_CONFIG=/path/to/agents.yaml \\
+   WORKSHOP_BENCHMARK_CODING_CONFIG=/path/to/workshop.yaml \\
    WORKSHOP_BENCHMARK_CODING_AGENT=coder \\
      pipenv run pytest tests/test_local_benchmark_live.py
 

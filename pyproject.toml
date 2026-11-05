@@ -3,10 +3,12 @@ requires = ["setuptools>=61"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "common-ai-workshop"
+name = "llm-workshop"
 version = "0.1.0"
+description = "Tools for building and running LLM agent workflows"
+readme = "readme.md"
 requires-python = ">=3.15"
-dependencies = ["asana", "click", "notion-client", "httpx", "python-dotenv", "selenium", "llm", "jinja2", "pyyaml", "gitpython", "mcp>=2.3,<3", "rich", "textual>=8.2,<9", "pydantic>=2,<3"]
+dependencies = ["asana", "click", "notion-client", "httpx", "python-dotenv", "selenium", "llm", "jinja2", "pyyaml", "gitpython", "mcp>=2.3,<3", "rich", "textual>=8.2,<9", "pydantic>=2,<3", "cookiecutter>=2.4"]
 
 [project.scripts]
 workshop = "workshop.cli:cli"
@@ -28,11 +30,16 @@ select = ["E", "W", "F"]
 # Fixture stubs intentionally leave provided imports unused for the task.
 "workshop/agent_benchmark/fixtures/**" = ["F401"]
 
+[tool.setuptools.package-dir]
+template_engine = "template_engine/src/template_engine"
+
 [tool.setuptools.packages.find]
-include = ["workshop*", "research_context*"]
+where = [".", "template_engine/src"]
+include = ["workshop*", "research_context*", "template_engine*"]
+namespaces = false
 
 [tool.setuptools.package-data]
-"workshop.agent_config" = ["configs/*.yaml"]
+"template_engine" = ["templates/python-project/cookiecutter.json", "templates/python-project/{{cookiecutter.project_slug}}/*"]
 "workshop.agent_benchmark" = [
   "fixtures/*/*.py",
   "fixtures/*/*.txt",

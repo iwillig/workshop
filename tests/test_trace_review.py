@@ -320,17 +320,18 @@ def test_eval_cli_end_to_end(tmp_path, monkeypatch):
     )
     config = tmp_path / "reviewer.yaml"
     config.write_text(
-        "agents:\n  reviewer:\n    model:\n      model_name: local-reviewer\n"
+        "version: 1\nagents:\n  reviewer:\n    model:\n"
+        "      model_name: local-reviewer\n"
         "      protocol: native\n"
     )
     runner_result = CliRunner().invoke(
         cli,
         [
+            "--workshop-config",
+            str(config),
             "eval",
             "review-trace",
             report["run"]["id"],
-            "--config",
-            str(config),
             "--agent",
             "reviewer",
             "--storage",

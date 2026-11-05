@@ -1,6 +1,7 @@
 # Generic PR reviewer and research-context tools: implementation plan
 
-**Status: core workflow implemented; validation remains in progress.**
+**Status: historical plan; configuration examples below are superseded.**
+Current agent definitions are in `workshop.yaml`; see `docs/pr-review.rst`.
 Bounded read-only GitHub tools, native `llm` adapters, tool selection, and a
 configured reviewer exist. The dedicated PR command and worker were removed.
 The corrected synthetic `pr-review-v5` suite is available for human-judged

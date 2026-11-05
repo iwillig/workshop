@@ -16,9 +16,13 @@ def browser_commands():
 @click.argument("output", type=click.Path(dir_okay=False, path_type=str))
 def screenshot(url, output):
     """Save a headless Chrome viewport screenshot of URL to OUTPUT (PNG)."""
+    ctx = click.get_current_context()
+    project = (ctx.obj or {}).get("workshop", {})
+    browser = project.get("browser", {})
+    width, height = browser.get("width", 1280), browser.get("height", 800)
     options = Options()
     options.add_argument("--headless=new")
-    options.add_argument("--window-size=1280,800")
+    options.add_argument(f"--window-size={width},{height}")
     driver = None
     try:
         driver = webdriver.Chrome(options=options)

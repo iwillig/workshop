@@ -68,11 +68,7 @@ def test_example_agent_uses_only_github_read_tools(monkeypatch):
         "workshop.agent.models.llm.get_model",
         lambda _: SimpleNamespace(conversation=lambda: object()),
     )
-    path = (
-        Path(__file__).resolve().parents[1]
-        / "examples"
-        / "pr-review-agent.yaml"
-    )
+    path = Path(__file__).resolve().parents[1] / "workshop.yaml"
     config = load_config(path, agent_name="pr-reviewer")
     assert "system_template" in config["agent"]
     agent = build_agent(config)
@@ -148,11 +144,7 @@ def test_reviewer_uses_tools_and_reports_shas(monkeypatch):
         "workshop.agent.models.llm.get_model", lambda _: Backend()
     )
     monkeypatch.setattr(github_tools, "GitHubReviewService", fake_service)
-    path = (
-        Path(__file__).resolve().parents[1]
-        / "examples"
-        / "pr-review-agent.yaml"
-    )
+    path = Path(__file__).resolve().parents[1] / "workshop.yaml"
     agent = build_agent(load_config(path, agent_name="pr-reviewer"))
     result = agent.run("Review o/r pull request 1")
     assert result["exit_status"] == "Submitted"

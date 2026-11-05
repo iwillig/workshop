@@ -1,6 +1,7 @@
 # Agent evaluation and learning loop: implementation plan
 
-**Status: broader proposal, partly superseded.** A report-only local runner
+**Status: historical proposal, partly superseded.** Configuration examples
+below are superseded by `workshop.yaml`. A report-only local runner
 for trusted fixtures is available; see `docs/agent-evaluation.rst`. The user
 chose to defer the sandbox-first requirement for local development. The
 isolation and trace-review requirements below remain proposals for untrusted

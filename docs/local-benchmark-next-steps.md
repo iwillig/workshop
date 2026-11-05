@@ -1,6 +1,7 @@
 # Local benchmark validation and expansion plan
 
-**Status: this local benchmark slice is complete.** Both `hf-glm` smoke runs
+**Status: historical checklist; this local benchmark slice is complete.**
+Configuration examples below predate `workshop.yaml`. Both `hf-glm` smoke runs
 completed: the reviewer identified the expected defect and received a separate
 human pass decision, and the coding check passed. Since this checklist was
 written, v3 suites, report comparisons, optional trace capture, and an

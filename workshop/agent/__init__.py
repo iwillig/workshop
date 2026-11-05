@@ -25,9 +25,6 @@ from workshop.agent.models import LlmModel
 
 __all__ = [
     "AgentConfig",
-    "DEFAULT_CONFIG_PATH",
-    "build_agent",
-    "load_config",
     "DefaultAgent",
     "DockerEnvironment",
     "FormatError",
@@ -40,15 +37,6 @@ __all__ = [
     "TimeExceeded",
     "UserInterruption",
 ]
-
-
-def __getattr__(name):
-    """Keep legacy configuration exports without coupling imports to YAML."""
-    if name in {"DEFAULT_CONFIG_PATH", "build_agent", "load_config"}:
-        import workshop.agent_config as config
-
-        return getattr(config, name)
-    raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
 
 
 __version__ = "0.1.0"

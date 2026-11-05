@@ -125,12 +125,12 @@ def test_cli_captures_and_displays_trace(tmp_path, monkeypatch):
     result = CliRunner().invoke(
         cli,
         [
+            "--workshop-config",
+            str(_write_config(tmp_path)),
             "benchmark",
             "run",
             "--suite",
             "review-v1",
-            "--config",
-            str(_write_config(tmp_path)),
             "--agent",
             "reviewer",
             "--storage",
@@ -163,5 +163,7 @@ def test_cli_trace_requires_captured_run(tmp_path):
 
 def _write_config(tmp_path):
     config = tmp_path / "agents.yaml"
-    config.write_text("agents:\n  reviewer: {}\n")
+    config.write_text(
+        "version: 1\nagents:\n  reviewer: {model: {model_name: fake}}\n"
+    )
     return config

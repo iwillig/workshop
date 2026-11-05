@@ -9,7 +9,7 @@ from workshop.agent_benchmark.compare import compare_reports
 from workshop.agent_benchmark.local import run_suite
 from workshop.agent_eval.reviews import load_report, record_review
 from workshop.agent_eval.trace import load_trace
-from workshop.agent_config import load_config
+from workshop.config import select_agent, storage_option
 
 
 @click.group(name="benchmark")
@@ -20,7 +20,6 @@ def benchmark_commands():
 @benchmark_commands.command("run")
 @click.option(
     "--suite",
-    required=True,
     type=click.Choice(
         [
             "coding-v1",
@@ -33,13 +32,8 @@ def benchmark_commands():
         ]
     ),
 )
-@click.option(
-    "--config",
-    required=True,
-    type=click.Path(exists=True, dir_okay=False, path_type=Path),
-)
-@click.option("--agent", "agent_name", required=True)
-@click.option("--storage", required=True, type=click.Path(path_type=Path))
+@click.option("--agent", "agent_name")
+@click.option("--storage", type=click.Path(path_type=Path))
 @click.option(
     "--local",
     is_flag=True,
@@ -51,7 +45,7 @@ def benchmark_commands():
     help="Store agent trajectories in private storage.",
 )
 @click.pass_context
-def run_command(ctx, suite, config, agent_name, storage, local, trace):
+def run_command(ctx, suite, agent_name, storage, local, trace):
     """Execute a named agent on a trusted local fixture."""
     if not local:
         raise click.UsageError("Pass --local to acknowledge host execution")
@@ -62,8 +56,15 @@ def run_command(ctx, suite, config, agent_name, storage, local, trace):
         err=True,
     )
     try:
-        agent_config = load_config(config, agent_name=agent_name)
-        agent_config["workshop"] = ctx.obj.get("workshop", {})
+        project = (ctx.obj or {}).get("workshop", {})
+        suite = suite or project.get("benchmark", {}).get("suite")
+        if not suite:
+            raise ValueError("Set --suite or benchmark.suite")
+        storage = storage or project.get("benchmark", {}).get("storage")
+        if not storage:
+            raise ValueError("Set --storage or benchmark.storage")
+        agent_name, agent_config = select_agent(project, agent_name)
+        agent_config["workshop"] = project
         report = run_suite(
             suite,
             agent_config,
@@ -86,7 +87,9 @@ def run_command(ctx, suite, config, agent_name, storage, local, trace):
 
 @benchmark_commands.command("trace")
 @click.argument("run_id")
-@click.option("--storage", required=True, type=click.Path(path_type=Path))
+@click.option(
+    "--storage", type=click.Path(path_type=Path), callback=storage_option
+)
 def trace_command(run_id, storage):
     """Display the trajectories stored for a run."""
     try:
@@ -99,7 +102,9 @@ def trace_command(run_id, storage):
 @benchmark_commands.command("compare")
 @click.argument("run_id_a")
 @click.argument("run_id_b")
-@click.option("--storage", required=True, type=click.Path(path_type=Path))
+@click.option(
+    "--storage", type=click.Path(path_type=Path), callback=storage_option
+)
 def compare_command(run_id_a, run_id_b, storage):
     """Compare two stored runs of the same suite version."""
     try:
@@ -111,7 +116,9 @@ def compare_command(run_id_a, run_id_b, storage):
 
 @benchmark_commands.command("report")
 @click.argument("run_id")
-@click.option("--storage", required=True, type=click.Path(path_type=Path))
+@click.option(
+    "--storage", type=click.Path(path_type=Path), callback=storage_option
+)
 def report_command(run_id, storage):
     """Display a previously stored report."""
     try:
@@ -131,7 +138,9 @@ def report_command(run_id, storage):
 )
 @click.option("--reviewer", required=True)
 @click.option("--rationale", required=True)
-@click.option("--storage", required=True, type=click.Path(path_type=Path))
+@click.option(
+    "--storage", type=click.Path(path_type=Path), callback=storage_option
+)
 def review_command(run_id, case_id, decision, reviewer, rationale, storage):
     """Record a human judgment without changing the original run."""
     try:

@@ -82,7 +82,7 @@ review-agent:
         brew_pipenv="$(brew --prefix pipenv 2>/dev/null)/bin/pipenv"
         if [ -x "$brew_pipenv" ]; then pipenv_bin="$brew_pipenv"; fi
     fi
-    "$pipenv_bin" run workshop agent run --config examples/review-agent.yaml \
+    "$pipenv_bin" run workshop agent run \
         --agent reviewer \
         --task 'Review workshop/agent/models.py and workshop/agent/default_agent.py for bugs. Report findings with file paths.'
 
@@ -119,7 +119,7 @@ benchmark-review:
         "$config_dir/extra-openai-models.yaml"
     LLM_USER_PATH="$config_dir" OPENAI_API_KEY="$HF_TOKEN" \
         "$pipenv_bin" run workshop benchmark run \
-        --suite review-v1 --config examples/review-agent.yaml \
+        --suite review-v1 \
         --agent reviewer --storage "${WORKSHOP_BENCHMARK_STORAGE:-$HOME/private-benchmarks}" --local
 
 # Build a PDF from the single-page Sphinx documentation using Google Chrome on macOS.

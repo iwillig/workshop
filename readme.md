@@ -1,6 +1,6 @@
 # Workshop
 
-A collection of tools to make working with the Common codebase easier.
+A collection of tools to make working with the LLM Agents easier.
 
 ## Why a workshop?
 
@@ -123,6 +123,14 @@ Sphinx documentation, including the workshop command reference.
 
 ## Install
 
-Install the Homebrew dependencies with `just install`. To install the
-Python dependencies and use the research and context commands, follow
-the [component setup](research_context/readme.md).
+Once published, install the Python package with Python 3.15 or newer:
+
+```shell
+python -m pip install llm-workshop
+```
+
+The installed command is `workshop`. Configure your project using
+[workshop.yaml](docs/project-configuration.md). Publishing setup is described
+in [docs/publishing.md](docs/publishing.md). For development, install the
+Homebrew dependencies with `just install` and follow the
+[component setup](research_context/readme.md).

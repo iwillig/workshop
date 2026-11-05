@@ -6,6 +6,7 @@ The top-level command groups tools by component. Install the command with
 environment with ``pipenv shell`` so ``workshop`` is on your path. Use
 ``workshop --help`` or a command group's ``--help`` to see current options.
 
+* ``config`` validates or shows the redacted project configuration structure.
 * ``research-context`` reads Asana, Notion, GitHub, and local Git data.
 * ``agent`` runs a configurable foreground coding or review agent.
 * ``benchmark`` runs trusted-local suites, shows reports and traces, compares
@@ -13,6 +14,9 @@ environment with ``pipenv shell`` so ``workshop`` is on your path. Use
 * ``eval`` contains experimental trace-review and proposal commands.
 * ``template-engine`` generates projects from trusted local templates.
 * ``browser`` captures screenshots.
+
+See ``docs/project-configuration.md`` for project-level agent, benchmark,
+evaluation and browser defaults. Agent definitions belong in ``workshop.yaml``.
 
 Local agent and benchmark execution is not sandboxed. The experimental trace
 reviewer is not network-isolated; use only synthetic or non-sensitive traces.

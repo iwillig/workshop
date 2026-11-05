@@ -182,7 +182,7 @@ class DockerEnvironmentConfig:
     forward_env: list[str] = field(default_factory=list)
     """Host environment variables to forward to the container, if set."""
     timeout: int = 30
-    executable: str = os.getenv("WORKSHOP_DOCKER_EXECUTABLE", "docker")
+    executable: str = "docker"
     run_args: list[str] = field(default_factory=lambda: ["--rm"])
     container_timeout: str = "2h"
     """Max duration to keep the container running; same format as sleep(1)."""

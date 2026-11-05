@@ -72,7 +72,10 @@ class Model:
         time.sleep(60)
 """)
     config = tmp_path / "agent.yaml"
-    config.write_text("model:\n  model_class: blocking_model.Model\n")
+    config.write_text(
+        "version: 1\ndefault_agent: test\nagents:\n  test:\n"
+        "    model: {model_class: blocking_model.Model}\n"
+    )
     master, slave = pty.openpty()
     original = termios.tcgetattr(slave)
     env = os.environ | {
@@ -89,12 +92,12 @@ class Model:
             sys.executable,
             "-c",
             "from workshop.cli import cli; cli()",
+            "--workshop-config",
+            str(config),
             "agent",
             "run",
             "--task",
             "test",
-            "--config",
-            str(config),
         ],
         stdin=slave,
         stdout=slave,

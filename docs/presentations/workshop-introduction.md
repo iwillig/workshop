@@ -128,6 +128,7 @@ The model sees the task and tool results; a remote provider may receive them.
 # Example: configure a reviewer
 
 ```yaml
+version: 1
 agents:
   reviewer:
     model: {model_name: YOUR_LLM_MODEL, protocol: native}
@@ -144,6 +145,7 @@ with an installed, tool-capable model; configure credentials separately.
 # Example: configure a coding agent
 
 ```yaml
+version: 1
 agents:
   coder:
     model: {model_name: YOUR_LLM_MODEL, protocol: native}
@@ -160,7 +162,7 @@ prompts and have the user's permissions; the working directory is not a sandbox.
 # Example: run a named agent
 
 ```sh
-workshop agent run --config agents.yaml --agent reviewer \\
+workshop agent run --agent reviewer \\
   --task 'Review calculator.py for bugs.' \\
   --cwd /path/to/disposable-workspace
 ```

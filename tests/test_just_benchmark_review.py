@@ -53,8 +53,6 @@ def test_review_benchmark_recipe_uses_token_and_cleans_up(tmp_path):
         "run",
         "--suite",
         "review-v1",
-        "--config",
-        "examples/review-agent.yaml",
         "--agent",
         "reviewer",
         "--storage",

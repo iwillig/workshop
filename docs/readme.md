@@ -1,5 +1,8 @@
 # Documentation
 
+See [project configuration](project-configuration.md) for external project
+setup, agent selection, and the current migration status.
+
 Build the Sphinx HTML documentation from the repository root:
 
 ```shell

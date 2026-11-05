@@ -19,9 +19,8 @@ The agent system is organized as sibling Python packages:
 
 * ``workshop.agent`` contains the existing LLM-based agent, model and execution
   environments, built-in tools, and MCP integration.
-* ``workshop.agent_config`` loads named or legacy YAML configurations and
-  builds agents. Configuration loading does not require constructing an agent.
-  Existing ``workshop.agent.config`` imports remain available for compatibility.
+* ``workshop.agent_config`` loads named project agents and builds agents.
+  Configuration loading does not require constructing an agent.
 * ``workshop.agent_benchmark`` provides versioned cases, suites, and a
   report-only runner for trusted local fixtures.
 * ``workshop.agent_eval`` provides evaluation records, private JSON storage,
@@ -33,11 +32,12 @@ traces. See :doc:`agent-evaluation` for benchmark usage and safety limits.
 Project configuration
 ---------------------
 
-``workshop.yaml`` holds project-wide settings and is separate from agent
-configuration files. The CLI searches the current directory and its parents
-for the nearest ``workshop.yaml``. Use ``workshop --workshop-config PATH`` to
-select another file explicitly. Missing configuration uses defaults; invalid
-configuration fails. Relative paths in this file resolve from its directory.
+``workshop.yaml`` holds project-wide settings and may define named agents.
+The CLI searches the current directory and its parents for the nearest file.
+Use ``workshop --workshop-config PATH`` to select another file explicitly.
+Missing configuration uses defaults; invalid configuration fails. Prompt and
+storage paths in this file resolve from its directory. See
+``docs/project-configuration.md`` for project configuration.
 
 Agent model-call logging is disabled by default. To enable it explicitly:
 
@@ -106,8 +106,8 @@ Start with a small task in a disposable directory:
      --cwd /path/to/disposable-workspace --step-limit 10 \
      --output /path/to/run.traj.json
 
-The default model is the LLM library's configured default. Add ``--model
-MODEL_ID`` to select another installed model. The task and workspace path are
+A project-defined LLM agent needs an explicit ``model_name`` or ``--model``.
+Add ``--model MODEL_ID`` to select another installed model. The task and workspace path are
 examples; replace them with values appropriate for your machine. The agent
 prints tool progress and runs commands without prompting. It prints the final
 submission once when the run finishes. Review the resulting files and run
@@ -136,8 +136,6 @@ line override the corresponding YAML configuration values. Use ``--agent NAME``
 to select an agent from a named configuration file.
 
 * ``-t, --task TEXT``: required task for the agent.
-* ``-c, --config PATH``: YAML configuration file; the packaged default is used
-  when omitted.
 * ``--agent NAME``: select a named definition from the YAML configuration.
 * ``--no-live``: use plain progress output rather than the Textual view.
 * ``-m, --model MODEL_ID``: LLM model ID or alias.
@@ -152,26 +150,28 @@ to select an agent from a named configuration file.
 Configuration and limits
 ------------------------
 
-The packaged configuration is ``workshop/agent_config/configs/default.yaml``. Copy it
-to a local file and pass that file with ``--config`` to change settings. The
-three sections select the agent, execution environment, and model. For example:
+Define agents under ``agents`` in ``workshop.yaml``. For example:
 
 .. code-block:: yaml
 
-   agent:
-     agent_class: interactive
-     step_limit: 10
-     wall_time_limit_seconds: 300
-     cost_limit: 1.0
-   environment:
-     environment_class: local
-     cwd: /path/to/disposable-workspace
-     timeout: 30
-   model:
-     model_class: llm
-     model_name: null
-     input_cost_per_mtok: 0.0
-     output_cost_per_mtok: 0.0
+   version: 1
+   default_agent: coding
+   agents:
+     coding:
+       agent:
+         agent_class: interactive
+         step_limit: 10
+         wall_time_limit_seconds: 300
+         cost_limit: 1.0
+       environment:
+         environment_class: local
+         cwd: /path/to/disposable-workspace
+         timeout: 30
+       model:
+         model_class: llm
+         model_name: your-model-id
+         input_cost_per_mtok: 0.0
+         output_cost_per_mtok: 0.0
 
 The agent scheduler accepts ``agent.parallel_tools`` (a list of tool names) and
 ``agent.max_parallel_tools`` (a positive integer, default 4). Calls are serial
@@ -190,8 +190,8 @@ serialized values may be large. Docker startup and cleanup output are not
 covered by the command-output limit. These limits do not bound transport or
 server memory.
 
-The packaged configuration sets a 50-call limit and a 30-second command timeout.
-The agent also defaults to a cost limit of 3.0, no wall-time limit, and three
+The command timeout defaults to 30 seconds. The agent defaults to no step
+limit, a cost limit of 3.0, no wall-time limit, and three
 consecutive format errors. Limits are checked between model calls; they do not
 interrupt a model call or a command already in progress. The command timeout is
 separate. A zero step, cost, wall-time, or format-error limit disables that
@@ -206,18 +206,21 @@ stop the run after repeated format errors. An opt-in native tool-call protocol
 is available for MCP servers, as described below.
 
 To keep the system prompt in a separate UTF-8 file, set
-``agent.system_template_path`` in the YAML configuration:
+``prompts.system_file`` in the named agent definition:
 
 .. code-block:: yaml
 
-   agent:
-     agent_class: interactive
-     system_template_path: prompts/system.txt
+   version: 1
+   agents:
+     coding:
+       model: {model_name: your-model-id}
+       prompts:
+         system_file: prompts/system.txt
 
 Relative paths are resolved from the directory containing the YAML file;
 absolute paths are also supported. The file is rendered as a Jinja template
 when the agent starts, just like an inline ``system_template``. Set only one
-of ``system_template`` and ``system_template_path``. Prompt templates are
+of ``prompts.system`` and ``prompts.system_file``. Prompt templates are
 trusted configuration: template variables can include host environment values,
 which may be sent to the model if referenced.
 
@@ -245,22 +248,25 @@ calls. For example:
 
 .. code-block:: yaml
 
-   model:
-     model_class: llm
-     model_name: your-tool-capable-model
-     protocol: native
-   mcp_servers:
-     local:
-       transport: stdio
-       command: python
-       args: ["/path/to/server.py"]
-     remote:
-       transport: http
-       url: https://example.com/mcp
-       headers_env:
-         Authorization: MCP_AUTH_HEADER
+   version: 1
+   agents:
+     coding:
+       model:
+         model_class: llm
+         model_name: your-tool-capable-model
+         protocol: native
+       mcp_servers:
+         local:
+           transport: stdio
+           command: python
+           args: ["/path/to/server.py"]
+         remote:
+           transport: http
+           url: https://example.com/mcp
+           headers_env:
+             Authorization: MCP_AUTH_HEADER
 
-Run the agent with ``workshop agent run --config agent.yaml --task '...'``.
+Run it with ``workshop agent run --agent coding --task '...'``.
 Server tools are named ``mcp__SERVER__TOOL``. Each server also provides
 ``list_resources``, ``read_resource``, ``list_prompts``, and ``get_prompt``
 tools with the same prefix. Sessions open at the start of a run and close when
@@ -291,7 +297,7 @@ responses are untrusted data and may contain instructions or sensitive content.
 Named agents
 ------------
 
-A YAML file may define multiple agents. For example, create ``agents.yaml``
+A project may define multiple agents. For example, create ``workshop.yaml``
 and replace the model ID and workspace paths with values from your environment:
 
 .. code-block:: shell
@@ -299,10 +305,11 @@ and replace the model ID and workspace paths with values from your environment:
    mkdir -p prompts
    printf '%s\n' 'Review code. Report findings without modifying files.' > prompts/reviewer.txt
 
-Then add these definitions to ``agents.yaml``:
+Then add these definitions to ``workshop.yaml``:
 
 .. code-block:: yaml
 
+   version: 1
    agents:
      reviewer:
        model:
@@ -331,7 +338,7 @@ Then add these definitions to ``agents.yaml``:
 
 .. code-block:: shell
 
-   workshop agent run --config agents.yaml --agent reviewer --task 'Review the code'
+   workshop agent run --agent reviewer --task 'Review the code'
 
 ``prompts.system_file`` resolves relative to the YAML file; ``prompts.system``
 and ``prompts.instance`` provide inline templates. ``limits`` accepts agent
@@ -339,16 +346,15 @@ configuration fields such as ``step_limit``. ``tools`` selects built-in native
 tools; omit it to use all available built-ins. Per-tool options are not yet
 supported. Selecting only ``read`` restricts the built-in tools; configured MCP
 server tools are separate and are still exposed. MCP servers can be configured
-within an agent using ``mcp_servers``. Legacy single-agent files remain
-supported without ``--agent``. Supplying ``--agent`` is required for named
-files. These commands run in the foreground; managed background jobs are not
+within an agent using ``mcp_servers``. Select an agent with ``--agent`` or
+set ``default_agent``. These commands run in the foreground; managed jobs are not
 yet implemented.
 
 For example, choose the coder and override its model-call limit for one run:
 
 .. code-block:: shell
 
-   workshop agent run --config agents.yaml --agent coder --step-limit 5 \\
+   workshop agent run --agent coder --step-limit 5 \\
      --task 'Fix the failing test and explain the change.'
 
 CLI overrides apply to the selected definition for that run; they do not edit
@@ -357,7 +363,7 @@ its YAML file.
 Review this project
 -------------------
 
-The repository includes ``examples/review-agent.yaml``, a named agent that
+The repository's ``workshop.yaml`` includes a reviewer agent that
 exposes only the built-in read tool. From the repository root, run:
 
 .. code-block:: shell
@@ -390,7 +396,7 @@ underlying command directly:
 
 .. code-block:: shell
 
-   pipenv run workshop agent run --config examples/review-agent.yaml \\
+   pipenv run workshop agent run \\
      --agent reviewer \\
      --task 'Review workshop/agent/models.py and workshop/agent/default_agent.py for bugs. Report findings with file paths.' \\
      --output /tmp/workshop-review.traj.json
@@ -478,6 +484,7 @@ Agents select the model by ID and require the native protocol for tools:
 
 .. code-block:: yaml
 
+   version: 1
    agents:
      reviewer:
        model:
@@ -489,7 +496,7 @@ Override one run without editing YAML:
 
 .. code-block:: shell
 
-   pipenv run workshop agent run --config examples/pr-review-agent.yaml \
+   pipenv run workshop agent run \
      --agent pr-reviewer --model hf-glm --task 'Review o/r pull request 1'
 
 Choosing between the models
@@ -533,8 +540,8 @@ Troubleshooting
 
 * **Unknown model or missing API key:** check ``llm models list`` and the
   provider's setup instructions in the same Pipenv environment.
-* **Named agent selection fails:** pass ``--agent NAME`` for a file with an
-  ``agents`` mapping; omit it for a legacy single-agent file.
+* **Named agent selection fails:** pass ``--agent NAME`` or set
+  ``default_agent`` to an entry in the project ``agents`` mapping.
 * **Repeated format errors:** the shell protocol requires a model response with
   exactly one ``mswea_bash_command`` block. Check the model and prompt; use
   ``model.protocol: native`` only with a model that supports native tool calls.
