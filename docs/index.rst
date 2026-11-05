@@ -1,10 +1,11 @@
-Common AI agent workshop
+LLM AI agent workshop
 ========================
 
-The workshop is a collection of tools that support work with the Common
-codebase. The ``workshop`` command provides research and context commands, a
-configurable coding agent, local report-only benchmarks and evaluation
-prototypes, project templates, and a browser screenshot command.
+Workshop is a collection of tools that support work with codebases and
+LLM Agents. The ``workshop`` command provides research and context
+commands, a configurable coding agent, local report-only benchmarks
+and evaluation prototypes, project templates, and a browser screenshot
+command.
 
 Local agent and benchmark execution is **not sandboxed**. The experimental
 trace reviewer is **not network-isolated**; use only synthetic or non-sensitive
