@@ -48,7 +48,8 @@ SPECS = {
 
 
 class GitHubTools:
-    def __init__(self, selected=()):
+    def __init__(self, selected=(), *, project=None):
+        self.project = project or {}
         self.tools = []
         for name, (description, properties, required, _) in SPECS.items():
             if name in selected:
@@ -59,7 +60,9 @@ class GitHubTools:
                         input_schema={
                             "type": "object",
                             "properties": properties,
-                            "required": required,
+                            "required": [
+                                key for key in required if key != "repository"
+                            ],
                             "additionalProperties": False,
                         },
                     )
@@ -73,8 +76,15 @@ class GitHubTools:
             if name not in allowed or not isinstance(args, dict):
                 raise ValueError("unknown tool or invalid arguments")
             _, properties, required, method = SPECS[name]
-            if set(args) - set(properties) or not set(required) <= set(args):
+            required = set(required) - {"repository"}
+            if set(args) - set(properties) or not required <= set(args):
                 raise ValueError("invalid tool arguments")
+            from workshop.config import resolve_github_repository
+
+            args = dict(args)
+            args["repository"] = resolve_github_repository(
+                self.project, args.get("repository")
+            )
             service = GitHubReviewService()
             try:
                 result = getattr(service, method)(**args)

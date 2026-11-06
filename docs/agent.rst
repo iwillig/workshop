@@ -535,6 +535,27 @@ and send its contents to the model provider. Prompt instructions are not a
 security boundary. For sensitive repositories, use a sanitized copy and a
 trusted model; if you save a trajectory, store it securely.
 
+Local branch reviewer (experimental)
+------------------------------------
+
+The project configuration includes a ``branch-reviewer`` agent and a
+project-wide ``git.base_ref``. Run from the repository root with
+``workshop agent run --agent branch-reviewer --task 'Review my current branch'``.
+The configured base and current branch HEAD are resolved at run start, and
+the review compares their merge base to that HEAD. The base ref must resolve
+locally; Workshop does not fetch it. Staged, unstaged and untracked changes
+are excluded. If the branch has no committed changes since the merge base,
+the comparison is empty. Ref movement and tool-call metadata are printed
+after the review. Inventory, patch and search results are paginated;
+inspect errors and limitations before using the findings. Coverage reports
+inventory completeness and file-read requests, not whether the model
+understood all returned content.
+
+Use only trusted repositories: Git configuration and partial clones may invoke
+helpers or access the network. This workflow is not a sandbox, and repository
+content sent to the configured model may include sensitive information or
+prompt injection.
+
 Troubleshooting
 ---------------
 

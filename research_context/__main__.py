@@ -26,8 +26,20 @@ def tasks_api():
 
 
 @click.group()
-def cli():
+@click.option(
+    "--workshop-config", type=click.Path(exists=True, dir_okay=False)
+)
+@click.pass_context
+def cli(ctx, workshop_config):
     """Research and context commands."""
+    from workshop.config import load_workshop_config
+
+    obj = ctx.ensure_object(dict)
+    if workshop_config or "workshop" not in obj:
+        try:
+            obj["workshop"] = load_workshop_config(path=workshop_config)
+        except (ValueError, OSError) as exc:
+            raise click.ClickException(str(exc)) from exc
     load_dotenv(dotenv_path=".env.local", override=False)
 
 

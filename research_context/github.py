@@ -42,6 +42,14 @@ class GitHubAPI:
 
 
 def repository_path(repository):
+    from workshop.config import resolve_github_repository
+
+    ctx = click.get_current_context(silent=True)
+    project = (ctx.obj or {}).get("workshop", {}) if ctx else {}
+    try:
+        repository = resolve_github_repository(project, repository)
+    except ValueError as exc:
+        raise click.BadParameter(str(exc)) from exc
     parts = repository.split("/")
     if len(parts) != 2 or any(
         not part
@@ -77,7 +85,7 @@ def github_commands():
 
 
 @github_commands.command("list-issues")
-@click.argument("repository")
+@click.argument("repository", required=False)
 @click.option(
     "--state",
     type=click.Choice(["open", "closed", "all"]),
@@ -93,12 +101,19 @@ def list_issues(repository, state):
     output([issue for issue in issues if "pull_request" not in issue])
 
 
+def repository_and_number(repository, number):
+    if number is None:
+        number = click.IntRange(min=1).convert(repository, None, None)
+        repository = None
+    return repository_path(repository), number
+
+
 @github_commands.command("get-issue")
 @click.argument("repository")
-@click.argument("number", type=click.IntRange(min=1))
+@click.argument("number", type=click.IntRange(min=1), required=False)
 def get_issue(repository, number):
     """Get an issue and its comments from OWNER/REPO as JSON."""
-    path = repository_path(repository)
+    path, number = repository_and_number(repository, number)
 
     def fetch(api):
         issue = api.get(f"{path}/issues/{number}")
@@ -115,7 +130,7 @@ def get_issue(repository, number):
 
 
 @github_commands.command("list-prs")
-@click.argument("repository")
+@click.argument("repository", required=False)
 @click.option(
     "--state",
     type=click.Choice(["open", "closed", "all"]),
@@ -166,10 +181,10 @@ def search_prs(query):
 
 @github_commands.command("pr-files")
 @click.argument("repository")
-@click.argument("number", type=click.IntRange(min=1))
+@click.argument("number", type=click.IntRange(min=1), required=False)
 def pr_files(repository, number):
     """List changed files and available patches for a pull request as JSON."""
-    path = repository_path(repository)
+    path, number = repository_and_number(repository, number)
     output(
         github_request(
             lambda api: api.list_all(f"{path}/pulls/{number}/files")
@@ -179,10 +194,10 @@ def pr_files(repository, number):
 
 @github_commands.command("pr-commits")
 @click.argument("repository")
-@click.argument("number", type=click.IntRange(min=1))
+@click.argument("number", type=click.IntRange(min=1), required=False)
 def pr_commits(repository, number):
     """List commits in a pull request as JSON."""
-    path = repository_path(repository)
+    path, number = repository_and_number(repository, number)
     output(
         github_request(
             lambda api: api.list_all(f"{path}/pulls/{number}/commits")
@@ -192,10 +207,10 @@ def pr_commits(repository, number):
 
 @github_commands.command("get-pr")
 @click.argument("repository")
-@click.argument("number", type=click.IntRange(min=1))
+@click.argument("number", type=click.IntRange(min=1), required=False)
 def get_pr(repository, number):
     """Get a pull request, comments and reviews from OWNER/REPO as JSON."""
-    path = repository_path(repository)
+    path, number = repository_and_number(repository, number)
 
     def fetch(api):
         return {

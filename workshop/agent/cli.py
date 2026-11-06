@@ -146,6 +146,11 @@ def run_agent(
         Console().print(
             result["submission"], markup=False, highlight=False, soft_wrap=True
         )
+    if result.get("git_review"):
+        import json
+
+        click.echo("Git review metadata:")
+        click.echo(json.dumps(result["git_review"], indent=2))
     if result.get("cleanup_warning"):
         click.echo(result["cleanup_warning"], err=True)
     if output:

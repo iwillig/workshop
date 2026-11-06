@@ -134,6 +134,7 @@ def validate_project_agent(config: dict, *, name: str) -> None:
     )
     from workshop.agent.models import LlmModelConfig
     from research_context.github_tools import SPECS
+    from research_context.git_review_tools import SPECS as GIT_SPECS
 
     sections = (
         (
@@ -233,8 +234,14 @@ def validate_project_agent(config: dict, *, name: str) -> None:
                 "read",
                 "edit",
                 "bash",
-            } | SPECS.keys() or options not in ({}, None):
+            } | SPECS.keys() | GIT_SPECS.keys() or options not in ({}, None):
                 raise ValueError(f"agents.{name}.tools: invalid tool {tool!r}")
+        if set(tools) & GIT_SPECS.keys() and environment.get(
+            "environment_class", "local"
+        ) != "local":
+            raise ValueError(
+                "Local Git review tools require a local environment"
+            )
     servers = config.get("mcp_servers")
     if servers is not None and not isinstance(servers, dict):
         raise ValueError(f"agents.{name}.mcp_servers must be a mapping")
@@ -304,6 +311,9 @@ def build_agent(config: dict, **agent_overrides):
     from workshop.agent.mcp_runtime import MCPRuntime
     from workshop.agent.models import LlmModel
     from research_context.github_tools import GitHubTools, SPECS
+    from research_context.git_review_tools import (
+        GitReviewTools, SPECS as GIT_SPECS,
+    )
 
     agent_classes = {"default": DefaultAgent, "interactive": InteractiveAgent}
     environment_classes = {
@@ -316,7 +326,9 @@ def build_agent(config: dict, **agent_overrides):
         if not isinstance(tool_config, dict):
             raise ValueError("tools must be a mapping")
         for name, options in tool_config.items():
-            if name not in {"read", "edit", "bash"} | SPECS.keys():
+            if name not in (
+                {"read", "edit", "bash"} | SPECS.keys() | GIT_SPECS.keys()
+            ):
                 raise ValueError(f"Unknown tool: {name}")
             if options not in ({}, None):
                 raise ValueError(f"Tool options are not supported: {name}")
@@ -357,7 +369,9 @@ def build_agent(config: dict, **agent_overrides):
     agent = agent_class(model, environment, **agent_config | agent_overrides)
     if tool_config is not None:
         available = {tool.name for tool in agent.builtin_tools.tools}
-        unavailable = set(tool_config) - available - SPECS.keys()
+        unavailable = (
+            set(tool_config) - available - SPECS.keys() - GIT_SPECS.keys()
+        )
         if unavailable:
             raise ValueError(
                 "Tools unavailable in this environment: "
@@ -368,9 +382,25 @@ def build_agent(config: dict, **agent_overrides):
             for tool in agent.builtin_tools.tools
             if tool.name in tool_config
         ]
-        research_tools = GitHubTools(set(tool_config) & SPECS.keys())
+        research_tools = GitHubTools(
+            set(tool_config) & SPECS.keys(), project=config.get("workshop")
+        )
         if research_tools.tools:
             agent.tool_providers.append(research_tools)
+        git_selected = set(tool_config) & GIT_SPECS.keys()
+        if git_selected:
+            if not isinstance(environment, LocalEnvironment):
+                raise ValueError(
+                    "Local Git review tools require a local environment"
+                )
+            base_ref = (
+                (config.get("workshop") or {}).get("git", {}).get("base_ref")
+            )
+            agent.tool_providers.append(
+                GitReviewTools(
+                    environment.config.cwd or ".", base_ref, git_selected
+                )
+            )
     servers = config.get("mcp_servers") or {}
     if servers:
         if not isinstance(servers, dict):

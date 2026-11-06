@@ -11,6 +11,12 @@ names, remain visible. A missing file uses built-in defaults.
 ```yaml
 version: 1
 default_agent: coding
+git:
+  base_ref: main
+github:
+  repositories:
+    app: example-owner/example-repo
+  default_repo: app
 llm:
   logging:
     enabled: false
@@ -57,6 +63,40 @@ commands; `benchmark.suite` supplies the benchmark run default. A benchmark
 still requires the explicit `--local` safety acknowledgement. Trace capture
 is opt-in with `--trace`. Logging is opt-in and can contain sensitive workspace
 and model data; keep the database, reports, and traces private.
+
+## Local branch review and GitHub defaults
+
+`git.base_ref` is a project-wide local Git ref used by the experimental
+`branch-reviewer`. Set it to the branch or commit you want to compare against;
+Workshop resolves it locally and does not fetch updates. The reviewer compares
+the merge base to the captured current-branch HEAD. Staged, unstaged, and
+untracked changes are excluded. From the repository root, run:
+
+```sh
+workshop agent run --agent branch-reviewer --task "Review my current branch"
+```
+
+The checked-in agent is an example: other projects must define their own named
+agent and explicitly select `git_review_context`, `git_review_diff`,
+`git_read_file`, and `git_search`. These native tools require a local execution
+environment and a configured `git.base_ref`. See the [agent guide](agent.rst)
+for usage, coverage limitations, and trust considerations.
+
+`github.repositories` maps local aliases to GitHub `OWNER/REPO` identifiers;
+`github.default_repo` names one of those aliases. GitHub commands and native
+GitHub tools use it when no repository is supplied. An explicit alias or
+`OWNER/REPO` takes precedence. For example:
+
+```sh
+workshop research-context github get-pr 123
+workshop research-context github get-pr app 123
+workshop research-context github get-pr another-owner/another-repo 123
+```
+
+The standalone `research-context` CLI also discovers the nearest project file
+and accepts `--workshop-config PATH`. General GitHub search queries are not
+implicitly restricted to the default repository. Credentials remain outside
+`workshop.yaml`.
 
 ## Credentials and integrations
 

@@ -39,6 +39,8 @@ def load_workshop_config(path=None, *, cwd=None):
         "benchmark",
         "evaluation",
         "browser",
+        "git",
+        "github",
     }:
         raise ValueError("workshop.yaml must contain only recognized fields")
     llm = data.get("llm", {})
@@ -64,6 +66,46 @@ def load_workshop_config(path=None, *, cwd=None):
         db_path = Path(database).expanduser()
         result["database"] = str((path.parent / db_path).absolute())
     output = {"llm": {"logging": result}}
+    if "git" in data:
+        git = data["git"]
+        if not isinstance(git, dict) or set(git) - {"base_ref"}:
+            raise ValueError("git must contain only base_ref")
+        if "base_ref" in git and (
+            not isinstance(git["base_ref"], str)
+            or not git["base_ref"].strip()
+        ):
+            raise ValueError("git.base_ref must be a nonempty string")
+        output["git"] = dict(git)
+    if "github" in data:
+        import re
+
+        github = data["github"]
+        if not isinstance(github, dict) or set(github) - {
+            "repositories", "default_repo"
+        }:
+            raise ValueError(
+                "github must contain only repositories and default_repo"
+            )
+        repositories = github.get("repositories", {})
+        if not isinstance(repositories, dict):
+            raise ValueError("github.repositories must be a mapping")
+        for alias, repository in repositories.items():
+            if not isinstance(alias, str) or not re.fullmatch(
+                r"[A-Za-z0-9_-]+", alias
+            ):
+                raise ValueError("invalid GitHub repository alias")
+            if not isinstance(repository, str) or not re.fullmatch(
+                r"[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+", repository
+            ) or any(part in (".", "..") for part in repository.split("/")):
+                raise ValueError(f"invalid GitHub repository for {alias}")
+        default = github.get("default_repo")
+        if default is not None and (
+            not isinstance(default, str) or default not in repositories
+        ):
+            raise ValueError(
+                "github.default_repo must name a repository alias"
+            )
+        output["github"] = dict(github)
     if "agents" in data and "version" not in data:
         raise ValueError("version: 1 is required when defining agents")
     version = data.get("version", 1)
@@ -138,6 +180,24 @@ def load_workshop_config(path=None, *, cwd=None):
     if browser:
         output["browser"] = dict(browser)
     return output
+
+
+def resolve_github_repository(project, repository=None):
+    """Resolve an explicit repository or project default to OWNER/REPO."""
+    import re
+
+    github = project.get("github", {})
+    repositories = github.get("repositories", {})
+    value = repository or github.get("default_repo")
+    if value in repositories:
+        value = repositories[value]
+    if not isinstance(value, str) or not re.fullmatch(
+        r"[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+", value
+    ) or any(part in (".", "..") for part in value.split("/")):
+        raise ValueError(
+            "Select a valid GitHub repository (OWNER/REPO) or alias"
+        )
+    return value
 
 
 def select_agent(project, name=None, *, model_override=None):

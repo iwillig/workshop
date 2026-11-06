@@ -120,6 +120,9 @@ class DefaultAgent:
         result = None
         primary_error = None
         try:
+            for provider in self.tool_providers:
+                if start_run := getattr(provider, "start_run", None):
+                    start_run()
             if start := getattr(self.env, "ensure_started", None):
                 start()
             with self.mcp_runtime or nullcontext() as runtime:
@@ -139,6 +142,13 @@ class DefaultAgent:
                         + (runtime.tools if runtime else [])
                     )
                 result = self._run(task, **kwargs)
+                for provider in self.tool_providers:
+                    if finish_run := getattr(provider, "finish_run", None):
+                        result["git_review"] = {
+                            "refs": finish_run(),
+                            "context": provider.review.context(),
+                            "coverage": provider.coverage_summary(),
+                        }
         except BaseException as exc:
             primary_error = exc
             raise
